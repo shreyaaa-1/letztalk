@@ -1,14 +1,18 @@
 const waitingQueue = [];
 const activeRooms = new Map();
 
-// Add user to queue
+// ===============================
+// add user to queue
+// ===============================
 const addToQueue = (socketId) => {
   if (!waitingQueue.includes(socketId)) {
     waitingQueue.push(socketId);
   }
 };
 
-// Remove user from queue
+// ===============================
+// remove user from queue
+// ===============================
 const removeFromQueue = (socketId) => {
   const index = waitingQueue.indexOf(socketId);
   if (index !== -1) {
@@ -16,7 +20,9 @@ const removeFromQueue = (socketId) => {
   }
 };
 
-// Get match pair
+// ===============================
+// get match pair
+// ===============================
 const getMatchPair = () => {
   if (waitingQueue.length >= 2) {
     const user1 = waitingQueue.shift();
@@ -26,21 +32,27 @@ const getMatchPair = () => {
   return null;
 };
 
-// Store active room
+// ===============================
+// create room
+// ===============================
 const createRoom = (roomId, user1, user2) => {
   activeRooms.set(roomId, { user1, user2 });
 };
 
-// Find partner
+// ===============================
+// find partner
+// ===============================
 const findPartner = (socketId) => {
-  for (const [, users] of activeRooms.entries()) {
+  for (const [roomId, users] of activeRooms.entries()) {
     if (users.user1 === socketId) return users.user2;
     if (users.user2 === socketId) return users.user1;
   }
   return null;
 };
 
-// Remove room
+// ===============================
+// remove room by user
+// ===============================
 const removeRoomByUser = (socketId) => {
   for (const [roomId, users] of activeRooms.entries()) {
     if (users.user1 === socketId || users.user2 === socketId) {
@@ -51,7 +63,9 @@ const removeRoomByUser = (socketId) => {
   return null;
 };
 
-// ✅ Debug stats
+// ===============================
+// DEBUG STATS (very useful later)
+// ===============================
 const getQueueStats = () => {
   return {
     waitingCount: waitingQueue.length,
