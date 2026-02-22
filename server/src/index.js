@@ -48,6 +48,14 @@ const io = new Server(server, {
 const socialRooms = new Map();
 const socketToSocialRoom = new Map();
 
+const generateRoomCode = () => {
+  let code = "";
+  do {
+    code = String(Math.floor(1000 + Math.random() * 9000));
+  } while (socialRooms.has(code));
+  return code;
+};
+
 const serializeRoom = (room) => ({
   code: room.code,
   name: room.name,
@@ -185,7 +193,7 @@ io.on("connection", (socket) => {
     socket.on("create_room", ({ roomName, displayName }) => {
       leaveSocialRoom(socket.id);
 
-      const code = uuidv4().slice(0, 6).toUpperCase();
+      const code = generateRoomCode();
       const name = String(roomName || "Room").trim() || "Room";
       const memberName = String(displayName || "Guest").trim() || "Guest";
 

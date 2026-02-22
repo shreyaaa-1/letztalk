@@ -43,11 +43,11 @@ const rpsEmoji = {
   scissors: "✌️",
 };
 
-const DiceFace = ({ value, isRolling }) => {
+const DiceFace = ({ value, isRolling, variant }) => {
   const activeDots = diceDotMap[value] || [];
 
   return (
-    <div className={`dice-face ${isRolling ? "rolling" : ""}`}>
+    <div className={`dice-face ${variant} ${isRolling ? "rolling" : ""}`}>
       {Array.from({ length: 9 }).map((_, index) => {
         const spot = index + 1;
         return <span key={spot} className={`dot ${activeDots.includes(spot) ? "show" : ""}`} />;
@@ -115,8 +115,9 @@ const GamesPage = () => {
     setIsRolling(true);
 
     setTimeout(() => {
-      const player = Math.floor(Math.random() * 6) + 1;
-      const bot = Math.floor(Math.random() * 6) + 1;
+      const randomValues = crypto.getRandomValues(new Uint32Array(2));
+      const player = (randomValues[0] % 6) + 1;
+      const bot = (randomValues[1] % 6) + 1;
       setLastRoll({ player, bot });
       setPlayerScore((prev) => prev + player);
       setBotScore((prev) => prev + bot);
@@ -218,7 +219,7 @@ const GamesPage = () => {
 
   return (
     <div className="center-screen">
-      <div className="feature-shell glass">
+      <div className="feature-shell refresh-shell glass">
         {toast && <div className={`game-toast ${toast.type}`}>{toast.text}</div>}
 
         <header className="feature-header">
@@ -247,11 +248,11 @@ const GamesPage = () => {
             <div className="dice-stage">
               <div className="dice-card">
                 <span>You</span>
-                <DiceFace value={lastRoll.player} isRolling={isRolling} />
+                <DiceFace value={lastRoll.player} isRolling={isRolling} variant="player-die" />
               </div>
               <div className="dice-card">
                 <span>Bot</span>
-                <DiceFace value={lastRoll.bot} isRolling={isRolling} />
+                <DiceFace value={lastRoll.bot} isRolling={isRolling} variant="bot-die" />
               </div>
             </div>
 

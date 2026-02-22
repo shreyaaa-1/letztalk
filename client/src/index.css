@@ -559,6 +559,29 @@ h3 {
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.refresh-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.refresh-shell::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 760px;
+  height: 240px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.24), rgba(34, 211, 238, 0.12) 46%, transparent 72%);
+  filter: blur(10px);
+}
+
+.refresh-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
 .feature-header {
   display: flex;
   justify-content: space-between;
@@ -645,6 +668,11 @@ h3 {
   transition: transform 0.18s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
+.game-tabs button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
 .game-tabs button.active {
   color: #fff;
   background: var(--signature-gradient);
@@ -655,6 +683,7 @@ h3 {
 .game-panel {
   padding: 18px;
   animation: gameFadeIn 0.2s ease-out;
+  border: 1px solid rgba(176, 198, 255, 0.16);
 }
 
 .game-panel h3 {
@@ -709,6 +738,12 @@ h3 {
   display: grid;
   place-items: center;
   gap: 8px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.dice-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .dice-card span {
@@ -727,10 +762,19 @@ h3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+  transform-style: preserve-3d;
 }
 
 .dice-face.rolling {
-  animation: diceBounce 0.52s ease;
+  animation: diceRotate360 0.62s ease;
+}
+
+.dice-face.player-die {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 45%, #fff), color-mix(in srgb, var(--primary) 28%, transparent));
+}
+
+.dice-face.bot-die {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 45%, #fff), color-mix(in srgb, var(--accent) 28%, transparent));
 }
 
 .dot {
@@ -808,6 +852,12 @@ h3 {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.quiz-option:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .quiz-option.correct {
@@ -826,6 +876,7 @@ h3 {
   padding: 12px;
   border: 1px solid rgba(176, 198, 255, 0.22);
   background: color-mix(in srgb, var(--surface) 82%, transparent);
+  animation: gameFadeIn 0.16s ease-out;
 }
 
 .quiz-explain p {
@@ -863,6 +914,7 @@ h3 {
   display: grid;
   place-items: center;
   font-size: 3.1rem;
+  animation: gameFadeIn 0.18s ease-out;
 }
 
 .rps-vs {
@@ -895,6 +947,13 @@ h3 {
   color: var(--muted);
 }
 
+.rps-score span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(176, 198, 255, 0.22);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+
 .rps-actions {
   display: flex;
   gap: 10px;
@@ -909,11 +968,12 @@ h3 {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.16s ease, opacity 0.2s ease;
+  transition: transform 0.16s ease, opacity 0.2s ease, filter 0.2s ease;
 }
 
 .rps-btn:hover {
   transform: translateY(-1px);
+  filter: brightness(1.06);
 }
 
 .rps-btn.rock {
@@ -939,6 +999,13 @@ h3 {
   padding: 14px;
   display: grid;
   gap: 10px;
+  border: 1px solid rgba(176, 198, 255, 0.16);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
 }
 
 .room-card h3 {
@@ -954,6 +1021,28 @@ h3 {
 .room-msg-list {
   min-height: 180px;
   max-height: 220px;
+}
+
+.rooms-grid-polished {
+  margin-top: 14px;
+}
+
+.room-code-chip {
+  border: 1px solid rgba(176, 198, 255, 0.26);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: #d6e8ff;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.room-error {
+  margin-top: 8px;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
 .match-header {
@@ -1209,18 +1298,18 @@ h3 {
   }
 }
 
-@keyframes diceBounce {
+@keyframes diceRotate360 {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: perspective(280px) rotateX(0deg) rotateY(0deg);
   }
-  30% {
-    transform: translateY(-8px) rotate(-6deg);
+  35% {
+    transform: perspective(280px) rotateX(170deg) rotateY(120deg);
   }
   70% {
-    transform: translateY(2px) rotate(5deg);
+    transform: perspective(280px) rotateX(290deg) rotateY(250deg);
   }
   100% {
-    transform: translateY(0) rotate(0deg);
+    transform: perspective(280px) rotateX(360deg) rotateY(360deg);
   }
 }
 
