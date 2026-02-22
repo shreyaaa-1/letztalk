@@ -45,6 +45,44 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
+const socialRooms = new Map();
+const socketToSocialRoom = new Map();
+
+const serializeRoom = (room) => ({
+  code: room.code,
+  name: room.name,
+  hostId: room.hostId,
+  members: Array.from(room.members.values()),
+});
+
+const leaveSocialRoom = (socketId) => {
+  const roomCode = socketToSocialRoom.get(socketId);
+  if (!roomCode) {
+    return;
+  }
+
+  const room = socialRooms.get(roomCode);
+  socketToSocialRoom.delete(socketId);
+
+  if (!room) {
+    return;
+  }
+
+  room.members.delete(socketId);
+
+  if (room.members.size === 0) {
+    socialRooms.delete(roomCode);
+    return;
+  }
+
+  if (room.hostId === socketId) {
+    const [nextHostId] = room.members.keys();
+    room.hostId = nextHostId;
+  }
+
+  io.to(roomCode).emit("room_updated", { room: serializeRoom(room) });
+};
+
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
 
@@ -125,6 +163,97 @@ io.on("connection", (socket) => {
       io.to(to).emit("call_end");
     });
 
+    // ===============================
+    // Text message relay
+    // ===============================
+    socket.on("chat_message", ({ to, text }) => {
+      const safeText = String(text || "").trim();
+      if (!to || !safeText) {
+        return;
+      }
+
+      io.to(to).emit("chat_message", {
+        from: socket.id,
+        text: safeText,
+        sentAt: Date.now(),
+      });
+    });
+
+    // ===============================
+    // Rooms: create/join/leave/message
+    // ===============================
+    socket.on("create_room", ({ roomName, displayName }) => {
+      leaveSocialRoom(socket.id);
+
+      const code = uuidv4().slice(0, 6).toUpperCase();
+      const name = String(roomName || "Room").trim() || "Room";
+      const memberName = String(displayName || "Guest").trim() || "Guest";
+
+      const room = {
+        code,
+        name,
+        hostId: socket.id,
+        members: new Map([[socket.id, memberName]]),
+      };
+
+      socialRooms.set(code, room);
+      socketToSocialRoom.set(socket.id, code);
+      socket.join(code);
+
+      socket.emit("room_joined", { room: serializeRoom(room) });
+    });
+
+    socket.on("join_room", ({ roomCode, displayName }) => {
+      const code = String(roomCode || "").trim().toUpperCase();
+      if (!code) {
+        socket.emit("room_error", { message: "Enter a room code." });
+        return;
+      }
+
+      const room = socialRooms.get(code);
+      if (!room) {
+        socket.emit("room_error", { message: "Room not found." });
+        return;
+      }
+
+      leaveSocialRoom(socket.id);
+
+      const memberName = String(displayName || "Guest").trim() || "Guest";
+      room.members.set(socket.id, memberName);
+      socketToSocialRoom.set(socket.id, code);
+      socket.join(code);
+
+      const payload = { room: serializeRoom(room) };
+      socket.emit("room_joined", payload);
+      io.to(code).emit("room_updated", payload);
+    });
+
+    socket.on("leave_room", () => {
+      const roomCode = socketToSocialRoom.get(socket.id);
+      if (!roomCode) {
+        return;
+      }
+
+      socket.leave(roomCode);
+      leaveSocialRoom(socket.id);
+    });
+
+    socket.on("room_message", ({ text }) => {
+      const roomCode = socketToSocialRoom.get(socket.id);
+      const room = roomCode ? socialRooms.get(roomCode) : null;
+      const safeText = String(text || "").trim();
+
+      if (!roomCode || !room || !safeText) {
+        return;
+      }
+
+      io.to(roomCode).emit("room_message", {
+        senderName: room.members.get(socket.id) || "Guest",
+        text: safeText,
+        sentAt: Date.now(),
+      });
+    });
+
 
 
   // ===============================
@@ -137,6 +266,12 @@ io.on("connection", (socket) => {
 
     const partnerId = findPartner(socket.id);
     removeRoomByUser(socket.id);
+
+    const socialRoomCode = socketToSocialRoom.get(socket.id);
+    if (socialRoomCode) {
+      socket.leave(socialRoomCode);
+      leaveSocialRoom(socket.id);
+    }
 
     if (partnerId) {
       io.to(partnerId).emit("partner_disconnected");

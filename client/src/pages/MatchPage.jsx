@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import http from "../api/http";
 import { SOCKET_URL } from "../config";
@@ -9,13 +9,13 @@ const ICE_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
-const MatchPage = () => {
+const MatchPage = ({ defaultFeature = "voice" }) => {
   const { user, isLoggedInUser, continueAsGuest, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState("idle");
-  const [mySocketId, setMySocketId] = useState("");
   const [partnerId, setPartnerId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [reason, setReason] = useState("inappropriate_behavior");
@@ -115,7 +115,6 @@ const MatchPage = () => {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      setMySocketId(socket.id);
       setMessage("Connected. Start matching when ready.");
     });
 
@@ -264,6 +263,8 @@ const MatchPage = () => {
     }
   };
 
+  const feature = searchParams.get("feature") || defaultFeature;
+  const featureLabel = feature === "text" ? "Text chat" : feature === "games" ? "Games" : "Voice call";
   const statusText = status === "searching" ? "Finding someone interesting…" : status === "matched" ? "You’re connected ✨" : message || "Ready when you are.";
 
   return (
@@ -301,8 +302,7 @@ const MatchPage = () => {
         <section className="match-status glass">
           <span className={`pulse ${status === "matched" ? "live" : ""}`} />
           <strong>{statusText}</strong>
-          <span className="mono">Room: {roomId || "not assigned"}</span>
-          <span className="mono">Socket: {mySocketId || "connecting..."}</span>
+          <span className="mono">Mode: {featureLabel}</span>
         </section>
 
         <section className="video-grid">
@@ -311,7 +311,7 @@ const MatchPage = () => {
             <video ref={localVideoRef} autoPlay playsInline muted />
           </div>
           <div className="video-card glass">
-            <span>Voice Panel · {partnerId ? `Partner ${partnerId}` : "Waiting for match"}</span>
+            <span>Voice Panel · {partnerId ? "Partner connected" : "Waiting for match"}</span>
             <video ref={remoteVideoRef} autoPlay playsInline />
           </div>
         </section>

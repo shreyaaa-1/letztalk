@@ -191,6 +191,25 @@ h3 {
   border: 1px solid rgba(149, 170, 224, 0.22);
 }
 
+.feature-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.feature-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(3, 8, 20, 0.45);
+  border-color: rgba(149, 170, 224, 0.35);
+}
+
+.feature-link:focus-visible {
+  outline: 2px solid rgba(149, 170, 224, 0.7);
+  outline-offset: 2px;
+}
+
 .feature-card h3 {
   margin: 10px 0 8px;
   font-size: 2rem;
@@ -533,6 +552,146 @@ h3 {
   padding: 30px;
 }
 
+.feature-shell {
+  width: min(1080px, 100%);
+  padding: 24px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.feature-header h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+
+.feature-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.messages-box {
+  padding: 14px;
+}
+
+.messages-list {
+  min-height: 260px;
+  max-height: 360px;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  padding: 6px;
+}
+
+.msg-bubble {
+  max-width: 72%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(176, 198, 255, 0.2);
+  font-size: 1rem;
+}
+
+.msg-bubble.self {
+  justify-self: end;
+  background: rgba(34, 211, 238, 0.14);
+}
+
+.msg-bubble.peer {
+  justify-self: start;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.messages-input-row {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.messages-input-row input,
+.room-card input {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(162, 188, 245, 0.28);
+  padding: 0 12px;
+  background: rgba(7, 12, 26, 0.78);
+  color: #eff5ff;
+  font-size: 1rem;
+}
+
+.game-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.game-tabs button {
+  border: 1px solid rgba(176, 198, 255, 0.24);
+  background: rgba(8, 12, 22, 0.45);
+  color: #d7e5ff;
+  border-radius: 999px;
+  min-height: 42px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.game-tabs button.active {
+  color: #fff;
+  background: var(--signature-gradient);
+  border-color: transparent;
+}
+
+.game-panel {
+  padding: 18px;
+}
+
+.game-panel h3 {
+  margin: 0 0 10px;
+}
+
+.quiz-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.room-card {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.room-card h3 {
+  margin: 0;
+}
+
+.room-card label {
+  display: grid;
+  gap: 4px;
+  color: #dbe7ff;
+}
+
+.room-msg-list {
+  min-height: 180px;
+  max-height: 220px;
+}
+
 .match-header {
   display: flex;
   justify-content: space-between;
@@ -576,6 +735,11 @@ h3 {
   min-height: 44px;
   padding: 0 14px;
   font-size: 1.14rem;
+}
+
+.ghost-btn.small {
+  width: auto;
+  margin-top: 0;
 }
 
 .match-status {
@@ -773,6 +937,10 @@ h3 {
 @media (max-width: 900px) {
   .hero-grid,
   .video-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rooms-grid {
     grid-template-columns: 1fr;
   }
 

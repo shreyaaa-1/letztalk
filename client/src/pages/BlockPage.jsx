@@ -31,7 +31,7 @@ const BlockPage = () => {
         blockedSocketId: targetSocketId,
       });
 
-      navigate("/match", {
+      navigate("/call", {
         replace: true,
         state: { notice: "User blocked successfully." },
       });
@@ -50,7 +50,7 @@ const BlockPage = () => {
           Report was submitted. You can now block this partner from your side.
         </p>
 
-        <div className="target-chip">Partner Socket: {targetSocketId || "Not available"}</div>
+        <div className="target-chip">Partner selected for block action</div>
 
         {error && <p className="form-error">{error}</p>}
 
@@ -63,8 +63,8 @@ const BlockPage = () => {
               Login / Register
             </Link>
           )}
-          <Link to="/match" className="ghost-link">
-            Back to Match
+          <Link to="/call" className="ghost-link">
+            Back to Call
           </Link>
         </div>
       </div>

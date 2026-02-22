@@ -62,7 +62,7 @@ const AuthPage = () => {
     }
 
     navTimerRef.current = setTimeout(() => {
-      navigate("/match");
+      navigate("/call");
     }, 900);
   };
 
@@ -123,7 +123,7 @@ const AuthPage = () => {
         </h1>
         <p className="auth-subtitle">Login/register is optional. Start safe spontaneous conversations anytime.</p>
 
-        <Link to="/match" className="solid-link full-link">
+        <Link to="/call" className="solid-link full-link">
           Start Random Talk (No Login)
         </Link>
 

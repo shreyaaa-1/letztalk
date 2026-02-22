@@ -11,7 +11,7 @@ const HomePage = () => {
     setLoadingGuest(true);
     try {
       await continueAsGuest();
-      navigate("/match");
+      navigate("/call");
     } finally {
       setLoadingGuest(false);
     }
@@ -49,29 +49,29 @@ const HomePage = () => {
         </div>
 
         <section className="feature-grid" aria-label="Platform features">
-          <article className="feature-card glass">
+          <Link to="/call" className="feature-card feature-link glass" aria-label="Go to Random Voice Calls">
             <div className="feature-icon pink">📞</div>
             <h3>Random Voice Calls</h3>
             <p>Connect instantly with strangers through voice. Mute, unmute, or end anytime.</p>
-          </article>
+          </Link>
 
-          <article className="feature-card glass">
+          <Link to="/message" className="feature-card feature-link glass" aria-label="Go to Text Chat">
             <div className="feature-icon blue">💬</div>
             <h3>Text Chat</h3>
             <p>Prefer typing? Chat randomly with people who share your vibe.</p>
-          </article>
+          </Link>
 
-          <article className="feature-card glass">
+          <Link to="/games" className="feature-card feature-link glass" aria-label="Go to Play Games">
             <div className="feature-icon green">🎮</div>
             <h3>Play Games</h3>
             <p>Break the ice with Ludo or learn Gen Z slang through quiz games.</p>
-          </article>
+          </Link>
 
-          <article className="feature-card glass">
+          <Link to="/rooms" className="feature-card feature-link glass" aria-label="Go to Create Rooms">
             <div className="feature-icon violet">👥</div>
             <h3>Create Rooms</h3>
             <p>Make your own space with music, seats, and invite your friends.</p>
-          </article>
+          </Link>
         </section>
       </div>
     </div>
