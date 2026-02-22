@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const healthRoutes = require("./routes/healthRoutes");
 const userRoutes = require("./routes/userRoutes");
 const { v4: uuidv4 } = require("uuid");
+const apiLimiter = require("./middleware/rateLimiter");
 
 const {
   addToQueue,
@@ -28,6 +29,7 @@ connectDB();
 // ✅ middleware
 app.use(cors());
 app.use(express.json());
+app.use(apiLimiter);
 
 // ✅ routes
 app.use("/api/auth", authRoutes);
