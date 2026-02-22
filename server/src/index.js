@@ -10,6 +10,8 @@ const healthRoutes = require("./routes/healthRoutes");
 const userRoutes = require("./routes/userRoutes");
 const { v4: uuidv4 } = require("uuid");
 const apiLimiter = require("./middleware/rateLimiter");
+const moderationRoutes = require("./routes/moderationRoutes");
+const blockRoutes = require("./routes/blockRoutes");
 
 const {
   addToQueue,
@@ -35,6 +37,8 @@ app.use(apiLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/mod", moderationRoutes);
+app.use("/api/mod", blockRoutes);
 
 // ✅ socket setup (MUST be before io.on)
 const io = new Server(server, {
