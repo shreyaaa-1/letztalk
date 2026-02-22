@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcryptjs");
 
 // @desc    Create guest user
 // @route   POST /api/auth/guest
@@ -47,13 +48,16 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // ✅ create user
-    const user = await User.create({
-      username,
-      email,
-      password,
-      isGuest: false,
-    });
+   // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+      const user = await User.create({
+        username,
+        email,
+        password: hashedPassword,
+        isGuest: false,
+      });
 
     return res.status(201).json({
       success: true,
