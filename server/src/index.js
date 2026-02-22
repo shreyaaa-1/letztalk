@@ -6,9 +6,18 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
-const registerMatchSocket = require("./sockets/matchSocket");
 const healthRoutes = require("./routes/healthRoutes");
 const userRoutes = require("./routes/userRoutes");
+const { v4: uuidv4 } = require("uuid");
+
+const {
+  addToQueue,
+  removeFromQueue,
+  getMatchPair,
+  createRoom,
+  findPartner,
+  removeRoomByUser,
+} = require("./services/matchService");
 
 const app = express();
 const server = http.createServer(app);
@@ -30,12 +39,64 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
-// ✅ socket connection handler
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
-  registerMatchSocket(io, socket);
-});
 
+  // ===============================
+  // Find random match
+  // ===============================
+  socket.on("find_match", () => {
+    console.log("🔎 Finding match for:", socket.id);
+
+    addToQueue(socket.id);
+
+    const pair = getMatchPair();
+
+    if (pair) {
+      const [user1, user2] = pair;
+      const roomId = uuidv4();
+
+      createRoom(roomId, user1, user2);
+
+      io.to(user1).emit("matched", { roomId, partnerId: user2 });
+      io.to(user2).emit("matched", { roomId, partnerId: user1 });
+
+      console.log("✅ Match created:", roomId);
+    }
+  });
+
+  // ===============================
+  // Skip user
+  // ===============================
+  socket.on("skip", () => {
+    removeFromQueue(socket.id);
+
+    const partnerId = findPartner(socket.id);
+    removeRoomByUser(socket.id);
+
+    if (partnerId) {
+      io.to(partnerId).emit("partner_skipped");
+    }
+
+    console.log("⏭️ User skipped:", socket.id);
+  });
+
+  // ===============================
+  // Disconnect
+  // ===============================
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected:", socket.id);
+
+    removeFromQueue(socket.id);
+
+    const partnerId = findPartner(socket.id);
+    removeRoomByUser(socket.id);
+
+    if (partnerId) {
+      io.to(partnerId).emit("partner_disconnected");
+    }
+  });
+});
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
