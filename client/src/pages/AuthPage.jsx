@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
@@ -8,6 +8,29 @@ const AuthPage = () => {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const suggestions = useMemo(() => {
+    const emailPrefix = form.email?.split("@")[0]?.replace(/[^a-zA-Z0-9_]/g, "") || "talker";
+    const suffix = Math.floor(100 + Math.random() * 900);
+    return [
+      `${emailPrefix}_${suffix}`,
+      `${emailPrefix}_live`,
+      `${emailPrefix}_random`,
+      `letztalk_${suffix}`,
+    ];
+  }, [form.email]);
+
+  const getFriendlyError = (requestError, fallback) => {
+    if (requestError.response?.data?.message) {
+      return requestError.response.data.message;
+    }
+
+    if (requestError.code === "ERR_NETWORK") {
+      return "Cannot reach server. Start backend on port 5000 or set VITE_API_BASE_URL.";
+    }
+
+    return fallback;
+  };
 
   const onChange = (event) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
@@ -20,12 +43,12 @@ const AuthPage = () => {
 
     try {
       if (mode === "login") {
-        await login(form.email, form.password);
+        await login(form.email.trim(), form.password);
       } else {
-        await register(form.username, form.email, form.password);
+        await register(form.username.trim(), form.email.trim(), form.password);
       }
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "Authentication failed");
+      setError(getFriendlyError(requestError, "Authentication failed"));
     } finally {
       setLoading(false);
     }
@@ -38,7 +61,7 @@ const AuthPage = () => {
     try {
       await continueAsGuest();
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "Guest login failed");
+      setError(getFriendlyError(requestError, "Guest login failed"));
     } finally {
       setLoading(false);
     }
@@ -73,16 +96,30 @@ const AuthPage = () => {
 
         <form onSubmit={onSubmit} className="auth-form">
           {mode === "register" && (
-            <label>
-              Username
-              <input
-                name="username"
-                value={form.username}
-                onChange={onChange}
-                placeholder="yourname"
-                required
-              />
-            </label>
+            <>
+              <label>
+                Username
+                <input
+                  name="username"
+                  value={form.username}
+                  onChange={onChange}
+                  placeholder="yourname"
+                  required
+                />
+              </label>
+
+              <div className="username-suggest">
+                {suggestions.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, username: name }))}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           <label>

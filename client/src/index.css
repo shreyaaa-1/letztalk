@@ -185,6 +185,23 @@ a {
   color: #fff;
 }
 
+.username-suggest {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: -2px;
+}
+
+.username-suggest button {
+  border: 1px solid #3a4f90;
+  background: rgba(14, 21, 42, 0.75);
+  color: #d8e1ff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .auth-form button:disabled,
 .ghost-btn:disabled {
   opacity: 0.65;

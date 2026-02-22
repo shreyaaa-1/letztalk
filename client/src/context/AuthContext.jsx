@@ -45,8 +45,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (username, email, password) => {
-    await http.post("/auth/register", { username, email, password });
-    return login(email, password);
+    const { data } = await http.post("/auth/register", { username, email, password });
+    setUser(data.user);
+    setToken(data.token);
+    setSession({ token: data.token, user: data.user });
+    return data.user;
   };
 
   const continueAsGuest = async () => {

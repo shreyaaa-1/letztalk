@@ -32,9 +32,11 @@ const createGuestUser = async (req, res) => {
 const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedUsername = username?.trim();
 
     // validation
-    if (!username || !email || !password) {
+    if (!normalizedUsername || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -42,7 +44,7 @@ const registerUser = async (req, res) => {
     }
 
     // check existing
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       return res.status(400).json({
@@ -56,14 +58,19 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      username,
-      email,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: hashedPassword,
       isGuest: false,
     });
 
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
     return res.status(201).json({
       success: true,
+      token,
       user,
     });
   } catch (error) {
@@ -81,9 +88,10 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
     // validation
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password required",
@@ -91,7 +99,7 @@ const loginUser = async (req, res) => {
     }
 
     // find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(400).json({
