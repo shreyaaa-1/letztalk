@@ -21,6 +21,7 @@ const MatchPage = () => {
   const [reason, setReason] = useState("inappropriate_behavior");
   const [message, setMessage] = useState(() => location.state?.notice || "");
   const [error, setError] = useState("");
+  const [isMuted, setIsMuted] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -122,7 +123,7 @@ const MatchPage = () => {
       setStatus("matched");
       setRoomId(incomingRoomId);
       setPartnerId(incomingPartnerId);
-      setMessage("Match found. Starting secure video session...");
+      setMessage("You’re connected ✨");
       setError("");
 
       try {
@@ -209,9 +210,22 @@ const MatchPage = () => {
 
   const findMatch = () => {
     setError("");
-    setMessage("Searching for an available partner...");
+    setMessage("Finding someone interesting…");
     setStatus("searching");
     socketRef.current?.emit("find_match");
+  };
+
+  const toggleMute = () => {
+    if (!localStreamRef.current) {
+      return;
+    }
+
+    const nextMuted = !isMuted;
+    localStreamRef.current.getAudioTracks().forEach((track) => {
+      track.enabled = !nextMuted;
+    });
+
+    setIsMuted(nextMuted);
   };
 
   const skipPartner = () => {
@@ -250,16 +264,20 @@ const MatchPage = () => {
     }
   };
 
+  const statusText = status === "searching" ? "Finding someone interesting…" : status === "matched" ? "You’re connected ✨" : message || "Ready when you are.";
+
   return (
     <div className="center-screen">
-      <div className="match-shell">
+      <div className="match-shell glass">
         <header className="match-header">
           <div>
-            <h2>LetzTalk Live</h2>
+            <h2 className="match-title">
+              Connect with
+              <span>Random Strangers</span>
+            </h2>
             <p>
               {user?.username || "Anonymous"} · {user ? (user?.isGuest ? "Guest" : "Registered") : "No login"}
             </p>
-            <p className="mono">Socket: {mySocketId || "connecting..."}</p>
           </div>
           <div className="header-actions">
             {!user && (
@@ -280,34 +298,29 @@ const MatchPage = () => {
           </div>
         </header>
 
+        <section className="match-status glass">
+          <span className={`pulse ${status === "matched" ? "live" : ""}`} />
+          <strong>{statusText}</strong>
+          <span className="mono">Room: {roomId || "not assigned"}</span>
+          <span className="mono">Socket: {mySocketId || "connecting..."}</span>
+        </section>
+
         <section className="video-grid">
-          <div className="video-card">
-            <span>You</span>
+          <div className="video-card glass">
+            <span>Voice Panel · You</span>
             <video ref={localVideoRef} autoPlay playsInline muted />
           </div>
-          <div className="video-card">
-            <span>Partner {partnerId ? `(${partnerId})` : ""}</span>
+          <div className="video-card glass">
+            <span>Voice Panel · {partnerId ? `Partner ${partnerId}` : "Waiting for match"}</span>
             <video ref={remoteVideoRef} autoPlay playsInline />
           </div>
         </section>
 
-        <section className="actions-row">
-          <button type="button" onClick={findMatch} disabled={status === "searching" || status === "matched"}>
-            {status === "searching" ? "Searching..." : "Find Match"}
-          </button>
-          <button type="button" onClick={skipPartner} disabled={!partnerId}>
-            Skip
-          </button>
-          <button type="button" className="danger" onClick={endCall} disabled={!partnerId}>
-            End Call
-          </button>
-        </section>
-
-        <section className="mod-card">
-          <h3>Safety controls</h3>
-          <div className="mod-grid one-col">
+        <section className="chat-panel glass">
+          <div className="chat-header">
+            <h3>Text Chat & Safety</h3>
             <label>
-              Reason
+              Report reason
               <select value={reason} onChange={(event) => setReason(event.target.value)}>
                 <option value="inappropriate_behavior">Inappropriate behavior</option>
                 <option value="harassment">Harassment</option>
@@ -316,22 +329,32 @@ const MatchPage = () => {
               </select>
             </label>
           </div>
-
-          <div className="actions-row compact">
-            <button type="button" onClick={submitReport}>
-              Report Now
-            </button>
-          </div>
-          {!isLoggedInUser && (
-            <p className="hint">Reporting and blocking require login. Matching works without login.</p>
-          )}
+          <p className="chat-meta">This space is optimized for calm, anonymous and moderated conversations.</p>
+          {error && <p className="form-error">{error}</p>}
+          {!isLoggedInUser && <p className="hint">Report and block actions require login.</p>}
         </section>
 
-        <footer className="status-row">
-          <span>Status: {status}</span>
-          {message && <span className="ok">{message}</span>}
-          {error && <span className="err">{error}</span>}
-        </footer>
+        <div className="control-dock-wrap">
+          <section className="control-dock glass">
+            <button type="button" className="dock-btn" onClick={toggleMute} title="Mute">
+              <span>{isMuted ? "🔇" : "🎤"}</span>
+            </button>
+            <button
+              type="button"
+              className="dock-btn"
+              onClick={status === "matched" ? skipPartner : findMatch}
+              title="Next"
+            >
+              <span>⏭️</span>
+            </button>
+            <button type="button" className="dock-btn" onClick={submitReport} title="Report">
+              <span>🚩</span>
+            </button>
+            <button type="button" className="dock-btn danger" onClick={endCall} disabled={!partnerId} title="End">
+              <span>❌</span>
+            </button>
+          </section>
+        </div>
       </div>
     </div>
   );

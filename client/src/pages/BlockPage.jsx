@@ -44,7 +44,7 @@ const BlockPage = () => {
 
   return (
     <div className="home-layout">
-      <div className="home-card block-card">
+      <div className="home-card block-card glass">
         <h1>Block this stranger?</h1>
         <p>
           Report was submitted. You can now block this partner from your side.

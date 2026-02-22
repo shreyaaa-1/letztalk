@@ -1,29 +1,78 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useAuth } from "../hooks/useAuth";
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const { continueAsGuest } = useAuth();
+  const [loadingGuest, setLoadingGuest] = useState(false);
+
+  const onStartGuest = async () => {
+    setLoadingGuest(true);
+    try {
+      await continueAsGuest();
+      navigate("/match");
+    } finally {
+      setLoadingGuest(false);
+    }
+  };
+
   return (
-    <div className="home-layout">
-      <div className="home-card">
-        <h1>Meet new strangers instantly on LetzTalk</h1>
-        <p>
-          No login required to start random talks. Guest, login, and register are optional if you want
-          account features.
-        </p>
+    <div className="home-layout landing-grid-bg">
+      <div className="landing-container">
+        <div className="home-card glass landing-shell">
+          <div className="landing-glow" aria-hidden="true" />
+          <h1 className="landing-title">
+            Connect with
+            <span>Random Strangers</span>
+          </h1>
 
-        <img
-          className="home-gif"
-          src="https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif"
-          alt="People meeting and chatting"
-        />
+          <p className="landing-subtitle">
+            Voice calls, text chat, and fun games with people across India. No strings attached,
+            just pure spontaneous connections.
+          </p>
 
-        <div className="home-actions">
-          <Link to="/match" className="solid-link">
-            Start Random Talk
-          </Link>
-          <Link to="/auth" className="ghost-link">
-            Login / Register / Guest (Optional)
-          </Link>
+          <div className="landing-actions">
+            <button type="button" className="solid-link landing-primary" onClick={onStartGuest} disabled={loadingGuest}>
+              📞 {loadingGuest ? "Starting..." : "START AS GUEST"}
+            </button>
+            <Link to="/auth" className="ghost-link landing-secondary">
+              Sign Up / Login
+            </Link>
+          </div>
+
+          <div className="trust-row landing-trust">
+            <span>🔒 Anonymous</span>
+            <span>🛡️ Moderated</span>
+            <span>⚡ Instant</span>
+          </div>
         </div>
+
+        <section className="feature-grid" aria-label="Platform features">
+          <article className="feature-card glass">
+            <div className="feature-icon pink">📞</div>
+            <h3>Random Voice Calls</h3>
+            <p>Connect instantly with strangers through voice. Mute, unmute, or end anytime.</p>
+          </article>
+
+          <article className="feature-card glass">
+            <div className="feature-icon blue">💬</div>
+            <h3>Text Chat</h3>
+            <p>Prefer typing? Chat randomly with people who share your vibe.</p>
+          </article>
+
+          <article className="feature-card glass">
+            <div className="feature-icon green">🎮</div>
+            <h3>Play Games</h3>
+            <p>Break the ice with Ludo or learn Gen Z slang through quiz games.</p>
+          </article>
+
+          <article className="feature-card glass">
+            <div className="feature-icon violet">👥</div>
+            <h3>Create Rooms</h3>
+            <p>Make your own space with music, seats, and invite your friends.</p>
+          </article>
+        </section>
       </div>
     </div>
   );

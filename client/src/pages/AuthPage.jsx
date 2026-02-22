@@ -1,13 +1,16 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const AuthPage = () => {
   const { login, register, continueAsGuest } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [popup, setPopup] = useState(null);
+  const navTimerRef = useRef(null);
 
   const suggestions = useMemo(() => {
     const emailPrefix = form.email?.split("@")[0]?.replace(/[^a-zA-Z0-9_]/g, "") || "talker";
@@ -32,6 +35,37 @@ const AuthPage = () => {
     return fallback;
   };
 
+  const showPopup = (message, type = "success") => {
+    setPopup({ message, type, id: Date.now() });
+  };
+
+  useEffect(() => {
+    if (!popup) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => setPopup(null), 2400);
+    return () => clearTimeout(timer);
+  }, [popup]);
+
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) {
+        clearTimeout(navTimerRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleNavigateToMatch = () => {
+    if (navTimerRef.current) {
+      clearTimeout(navTimerRef.current);
+    }
+
+    navTimerRef.current = setTimeout(() => {
+      navigate("/match");
+    }, 900);
+  };
+
   const onChange = (event) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
@@ -44,11 +78,18 @@ const AuthPage = () => {
     try {
       if (mode === "login") {
         await login(form.email.trim(), form.password);
+        showPopup("Login successful. Redirecting to match...", "success");
       } else {
         await register(form.username.trim(), form.email.trim(), form.password);
+        showPopup("Registration successful. Redirecting to match...", "success");
       }
+
+      setError("");
+      scheduleNavigateToMatch();
     } catch (requestError) {
-      setError(getFriendlyError(requestError, "Authentication failed"));
+      const friendlyError = getFriendlyError(requestError, "Authentication failed");
+      setError(friendlyError);
+      showPopup(friendlyError, "error");
     } finally {
       setLoading(false);
     }
@@ -60,8 +101,12 @@ const AuthPage = () => {
 
     try {
       await continueAsGuest();
+      showPopup("Guest session started. Redirecting to match...", "success");
+      scheduleNavigateToMatch();
     } catch (requestError) {
-      setError(getFriendlyError(requestError, "Guest login failed"));
+      const friendlyError = getFriendlyError(requestError, "Guest login failed");
+      setError(friendlyError);
+      showPopup(friendlyError, "error");
     } finally {
       setLoading(false);
     }
@@ -69,9 +114,14 @@ const AuthPage = () => {
 
   return (
     <div className="auth-layout">
-      <div className="auth-card">
-        <h1>LetzTalk</h1>
-        <p>Login/register is optional. You can start random talks directly without any account.</p>
+      <div className="auth-card glass auth-shell">
+        {popup && <div className={`popup-toast ${popup.type}`}>{popup.message}</div>}
+
+        <h1 className="auth-title">
+          Connect with
+          <span>Random Strangers</span>
+        </h1>
+        <p className="auth-subtitle">Login/register is optional. Start safe spontaneous conversations anytime.</p>
 
         <Link to="/match" className="solid-link full-link">
           Start Random Talk (No Login)
