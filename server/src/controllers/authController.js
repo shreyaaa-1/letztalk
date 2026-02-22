@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const { v4: uuidv4 } = require("uuid");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 // ===============================
 // Create guest user
@@ -109,8 +110,16 @@ const loginUser = async (req, res) => {
       });
     }
 
+        // create token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     return res.json({
       success: true,
+      token,
       user,
     });
   } catch (error) {
