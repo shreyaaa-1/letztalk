@@ -2,8 +2,9 @@ const User = require("../models/User");
 const { v4: uuidv4 } = require("uuid");
 const bcrypt = require("bcryptjs");
 
-// @desc    Create guest user
-// @route   POST /api/auth/guest
+// ===============================
+// Create guest user
+// ===============================
 const createGuestUser = async (req, res) => {
   try {
     const guestUser = await User.create({
@@ -24,13 +25,14 @@ const createGuestUser = async (req, res) => {
   }
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
+// ===============================
+// Register user
+// ===============================
 const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // ✅ validation
+    // validation
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -38,7 +40,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // ✅ check existing
+    // check existing
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -48,16 +50,16 @@ const registerUser = async (req, res) => {
       });
     }
 
-   // hash password
+    // hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-      const user = await User.create({
-        username,
-        email,
-        password: hashedPassword,
-        isGuest: false,
-      });
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      isGuest: false,
+    });
 
     return res.status(201).json({
       success: true,
@@ -72,7 +74,56 @@ const registerUser = async (req, res) => {
   }
 };
 
+// ===============================
+// Login user
+// ===============================
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password required",
+      });
+    }
+
+    // find user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    // compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    return res.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createGuestUser,
   registerUser,
+  loginUser,
 };
