@@ -81,6 +81,46 @@ io.on("connection", (socket) => {
     console.log("⏭️ User skipped:", socket.id);
   });
 
+
+      // ===============================
+    // WebRTC Offer
+    // ===============================
+    socket.on("webrtc_offer", ({ to, offer }) => {
+      io.to(to).emit("webrtc_offer", {
+        from: socket.id,
+        offer,
+      });
+    });
+
+    // ===============================
+    // WebRTC Answer
+    // ===============================
+    socket.on("webrtc_answer", ({ to, answer }) => {
+      io.to(to).emit("webrtc_answer", {
+        from: socket.id,
+        answer,
+      });
+    });
+
+    // ===============================
+    // ICE Candidate
+    // ===============================
+    socket.on("webrtc_ice_candidate", ({ to, candidate }) => {
+      io.to(to).emit("webrtc_ice_candidate", {
+        from: socket.id,
+        candidate,
+      });
+    });
+
+    // ===============================
+    // Call End
+    // ===============================
+    socket.on("call_end", ({ to }) => {
+      io.to(to).emit("call_end");
+    });
+
+
+
   // ===============================
   // Disconnect
   // ===============================
