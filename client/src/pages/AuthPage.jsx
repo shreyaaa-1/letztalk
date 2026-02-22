@@ -1,17 +1,13 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const AuthPage = () => {
-  const { isAuthenticated, login, register, continueAsGuest } = useAuth();
+  const { login, register, continueAsGuest } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  if (isAuthenticated) {
-    return <Navigate to="/match" replace />;
-  }
 
   const onChange = (event) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
@@ -52,7 +48,11 @@ const AuthPage = () => {
     <div className="auth-layout">
       <div className="auth-card">
         <h1>LetzTalk</h1>
-        <p>Secure random conversations with instant matching.</p>
+        <p>Login/register is optional. You can start random talks directly without any account.</p>
+
+        <Link to="/match" className="solid-link full-link">
+          Start Random Talk (No Login)
+        </Link>
 
         <div className="auth-tabs">
           <button

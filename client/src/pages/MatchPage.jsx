@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import http from "../api/http";
 import { SOCKET_URL } from "../config";
@@ -9,7 +10,7 @@ const ICE_CONFIG = {
 };
 
 const MatchPage = () => {
-  const { user, isLoggedInUser, logout } = useAuth();
+  const { user, isLoggedInUser, continueAsGuest, logout } = useAuth();
 
   const [status, setStatus] = useState("idle");
   const [mySocketId, setMySocketId] = useState("");
@@ -279,13 +280,27 @@ const MatchPage = () => {
           <div>
             <h2>LetzTalk Live</h2>
             <p>
-              {user?.username || "Anonymous"} · {user?.isGuest ? "Guest" : "Registered"}
+              {user?.username || "Anonymous"} · {user ? (user?.isGuest ? "Guest" : "Registered") : "No login"}
             </p>
             <p className="mono">Socket: {mySocketId || "connecting..."}</p>
           </div>
-          <button type="button" className="ghost-btn small" onClick={logout}>
-            Logout
-          </button>
+          <div className="header-actions">
+            {!user && (
+              <button type="button" className="ghost-btn small" onClick={continueAsGuest}>
+                Optional Guest Login
+              </button>
+            )}
+            {!isLoggedInUser && (
+              <Link className="ghost-link small-link" to="/auth">
+                Login / Register
+              </Link>
+            )}
+            {user && (
+              <button type="button" className="ghost-btn small" onClick={logout}>
+                Logout
+              </button>
+            )}
+          </div>
         </header>
 
         <section className="video-grid">
