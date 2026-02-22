@@ -10,7 +10,9 @@ const blockSchema = new mongoose.Schema(
     blockedUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+    },
+    blockedSocketId: {
+      type: String,
     },
   },
   { timestamps: true }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import http from "../api/http";
 import { SOCKET_URL } from "../config";
@@ -11,14 +11,15 @@ const ICE_CONFIG = {
 
 const MatchPage = () => {
   const { user, isLoggedInUser, continueAsGuest, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [status, setStatus] = useState("idle");
   const [mySocketId, setMySocketId] = useState("");
   const [partnerId, setPartnerId] = useState("");
   const [roomId, setRoomId] = useState("");
-  const [targetUserId, setTargetUserId] = useState("");
   const [reason, setReason] = useState("inappropriate_behavior");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => location.state?.notice || "");
   const [error, setError] = useState("");
 
   const localVideoRef = useRef(null);
@@ -99,7 +100,6 @@ const MatchPage = () => {
   const resetMatchState = useCallback((nextMessage = "") => {
     setPartnerId("");
     setRoomId("");
-    setTargetUserId("");
     setStatus("idle");
     setMessage(nextMessage);
     setError("");
@@ -122,7 +122,6 @@ const MatchPage = () => {
       setStatus("matched");
       setRoomId(incomingRoomId);
       setPartnerId(incomingPartnerId);
-      setTargetUserId(incomingPartnerId);
       setMessage("Match found. Starting secure video session...");
       setError("");
 
@@ -233,43 +232,21 @@ const MatchPage = () => {
       return;
     }
 
-    if (!targetUserId) {
-      setError("Target user id is required.");
+    if (!partnerId) {
+      setError("No active partner to report.");
       return;
     }
 
     try {
       await http.post("/mod/report", {
-        reportedUserId: targetUserId,
+        reportedSocketId: partnerId,
         reason,
         roomId,
       });
-      setMessage("Report submitted successfully.");
+      navigate(`/block?targetSocketId=${encodeURIComponent(partnerId)}`);
       setError("");
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to submit report.");
-    }
-  };
-
-  const submitBlock = async () => {
-    if (!isLoggedInUser) {
-      setError("Login is required for blocking.");
-      return;
-    }
-
-    if (!targetUserId) {
-      setError("Target user id is required.");
-      return;
-    }
-
-    try {
-      await http.post("/mod/block", {
-        blockedUserId: targetUserId,
-      });
-      setMessage("User blocked successfully.");
-      setError("");
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || "Unable to block user.");
     }
   };
 
@@ -328,16 +305,7 @@ const MatchPage = () => {
 
         <section className="mod-card">
           <h3>Safety controls</h3>
-          <div className="mod-grid">
-            <label>
-              Target user id
-              <input
-                value={targetUserId}
-                onChange={(event) => setTargetUserId(event.target.value)}
-                placeholder="Mongo user id"
-              />
-            </label>
-
+          <div className="mod-grid one-col">
             <label>
               Reason
               <select value={reason} onChange={(event) => setReason(event.target.value)}>
@@ -351,14 +319,11 @@ const MatchPage = () => {
 
           <div className="actions-row compact">
             <button type="button" onClick={submitReport}>
-              Report
-            </button>
-            <button type="button" className="danger" onClick={submitBlock}>
-              Block
+              Report Now
             </button>
           </div>
           {!isLoggedInUser && (
-            <p className="hint">Guest mode can match and call, but moderation API requires login.</p>
+            <p className="hint">Reporting and blocking require login. Matching works without login.</p>
           )}
         </section>
 

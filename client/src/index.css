@@ -5,14 +5,14 @@
 :root {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color: #e9edf5;
-  background: #0b1020;
+  background: #060a17;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #1c2850 0%, #0b1020 55%, #070b16 100%);
+  background: radial-gradient(circle at 20% 20%, #3e2e87 0%, #151a34 32%, #090d1f 65%, #060a17 100%);
 }
 
 #root {
@@ -32,16 +32,18 @@ a {
 
 .home-card {
   width: min(860px, 100%);
-  border-radius: 20px;
-  padding: 28px;
-  background: linear-gradient(180deg, rgba(23, 31, 59, 0.88) 0%, rgba(17, 24, 46, 0.92) 100%);
-  border: 1px solid rgba(150, 175, 255, 0.24);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  border-radius: 24px;
+  padding: 30px;
+  background: linear-gradient(145deg, rgba(32, 40, 76, 0.86) 0%, rgba(17, 23, 48, 0.9) 100%);
+  border: 1px solid rgba(171, 147, 255, 0.3);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
 }
 
 .home-card h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 2.2rem;
+  line-height: 1.2;
 }
 
 .home-card p {
@@ -51,10 +53,10 @@ a {
 
 .home-gif {
   width: 100%;
-  max-height: 320px;
+  max-height: 340px;
   object-fit: cover;
-  border-radius: 14px;
-  border: 1px solid #2f4278;
+  border-radius: 16px;
+  border: 1px solid #41559a;
 }
 
 .home-actions {
@@ -66,9 +68,9 @@ a {
 
 .solid-link,
 .ghost-link {
-  height: 42px;
+  height: 44px;
   border-radius: 10px;
-  padding: 0 16px;
+  padding: 0 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -78,13 +80,15 @@ a {
 
 .solid-link {
   color: #fff;
-  background: #4f74ff;
+  border: 0;
+  background: linear-gradient(90deg, #5f7cff 0%, #8a58ff 100%);
+  box-shadow: 0 10px 24px rgba(92, 113, 255, 0.42);
 }
 
 .ghost-link {
   color: #d3ddff;
-  background: transparent;
-  border: 1px solid #3b4f8d;
+  background: rgba(12, 18, 38, 0.55);
+  border: 1px solid #475d9e;
 }
 
 .full-link {
@@ -108,11 +112,11 @@ a {
 
 .auth-card {
   width: min(470px, 100%);
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 28px;
-  background: linear-gradient(180deg, rgba(23, 31, 59, 0.88) 0%, rgba(17, 24, 46, 0.92) 100%);
-  border: 1px solid rgba(150, 175, 255, 0.24);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  background: linear-gradient(145deg, rgba(33, 42, 80, 0.9) 0%, rgba(19, 24, 49, 0.9) 100%);
+  border: 1px solid rgba(163, 177, 255, 0.24);
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.34);
 }
 
 .auth-card h1 {
@@ -203,10 +207,11 @@ a {
 
 .match-shell {
   width: min(980px, 100%);
-  background: rgba(12, 18, 35, 0.86);
-  border: 1px solid rgba(124, 153, 246, 0.3);
-  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(18, 22, 45, 0.9) 0%, rgba(11, 16, 33, 0.92) 100%);
+  border: 1px solid rgba(140, 154, 238, 0.32);
+  border-radius: 24px;
   padding: 24px;
+  box-shadow: 0 28px 62px rgba(0, 0, 0, 0.36);
 }
 
 .match-header {
@@ -254,8 +259,8 @@ a {
 }
 
 .video-card {
-  background: #0d142b;
-  border: 1px solid #2a3c74;
+  background: #0e1633;
+  border: 1px solid #324b93;
   border-radius: 16px;
   padding: 10px;
   display: grid;
@@ -290,7 +295,8 @@ a {
   font-weight: 700;
   cursor: pointer;
   color: #fff;
-  background: #3d64ff;
+  background: linear-gradient(90deg, #4a70ff 0%, #835bff 100%);
+  box-shadow: 0 10px 20px rgba(79, 110, 255, 0.32);
 }
 
 .actions-row button:disabled {
@@ -299,15 +305,19 @@ a {
 }
 
 .actions-row .danger {
-  background: #d74459;
+  background: linear-gradient(90deg, #d34762 0%, #e66f46 100%);
 }
 
 .mod-card {
   margin-top: 18px;
   padding: 16px;
   border-radius: 14px;
-  border: 1px solid #334882;
-  background: #101a35;
+  border: 1px solid #3d5092;
+  background: rgba(14, 21, 43, 0.86);
+}
+
+.mod-grid.one-col {
+  grid-template-columns: 1fr;
 }
 
 .mod-card h3 {
@@ -358,11 +368,36 @@ a {
 }
 
 .status-row .ok {
-  color: #a8f4c5;
+  color: #8ef7c7;
 }
 
 .status-row .err {
   color: #ffb8bf;
+}
+
+.block-card {
+  width: min(620px, 100%);
+}
+
+.target-chip {
+  margin: 6px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #465da5;
+  background: rgba(13, 21, 44, 0.8);
+  color: #dce5ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
+.action-btn {
+  border: 0;
+  cursor: pointer;
+}
+
+.action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 @media (max-width: 800px) {

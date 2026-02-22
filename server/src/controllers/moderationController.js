@@ -5,21 +5,30 @@ const Report = require("../models/Report");
 // ===============================
 const reportUser = async (req, res) => {
   try {
-    const { reportedUserId, reason, roomId } = req.body;
+    const { reportedUserId, reportedSocketId, reason, roomId } = req.body;
 
-    if (!reportedUserId) {
+    if (!reportedUserId && !reportedSocketId) {
       return res.status(400).json({
         success: false,
-        message: "reportedUserId is required",
+        message: "reportedUserId or reportedSocketId is required",
       });
     }
 
-    const report = await Report.create({
+    const payload = {
       reporter: req.user._id,
-      reportedUser: reportedUserId,
       reason: reason || "inappropriate_behavior",
       roomId,
-    });
+    };
+
+    if (reportedUserId) {
+      payload.reportedUser = reportedUserId;
+    }
+
+    if (reportedSocketId) {
+      payload.reportedSocketId = reportedSocketId;
+    }
+
+    const report = await Report.create(payload);
 
     return res.status(201).json({
       success: true,

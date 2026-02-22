@@ -5,19 +5,28 @@ const Block = require("../models/Block");
 // ===============================
 const blockUser = async (req, res) => {
   try {
-    const { blockedUserId } = req.body;
+    const { blockedUserId, blockedSocketId } = req.body;
 
-    if (!blockedUserId) {
+    if (!blockedUserId && !blockedSocketId) {
       return res.status(400).json({
         success: false,
-        message: "blockedUserId is required",
+        message: "blockedUserId or blockedSocketId is required",
       });
     }
 
-    const block = await Block.create({
+    const payload = {
       blocker: req.user._id,
-      blockedUser: blockedUserId,
-    });
+    };
+
+    if (blockedUserId) {
+      payload.blockedUser = blockedUserId;
+    }
+
+    if (blockedSocketId) {
+      payload.blockedSocketId = blockedSocketId;
+    }
+
+    const block = await Block.create(payload);
 
     return res.status(201).json({
       success: true,
