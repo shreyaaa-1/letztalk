@@ -6,6 +6,7 @@ import GamesPage from "./pages/GamesPage";
 import HomePage from "./pages/HomePage";
 import MatchPage from "./pages/MatchPage";
 import MessagePage from "./pages/MessagePage";
+import MusicRoomPage from "./pages/MusicRoomPage";
 import RoomsPage from "./pages/RoomsPage";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <Route path="/call" element={<CallPage />} />
       <Route path="/message" element={<MessagePage />} />
       <Route path="/games" element={<GamesPage />} />
+      <Route path="/music" element={<MusicRoomPage />} />
       <Route path="/rooms" element={<RoomsPage />} />
       <Route path="/match" element={<MatchPage />} />
       <Route path="/block" element={<BlockPage />} />
