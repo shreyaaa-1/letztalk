@@ -19,9 +19,6 @@ const voiceSeatsInitial = [
   { id: 3, occupied: false, user: null },
   { id: 4, occupied: false, user: null },
   { id: 5, occupied: false, user: null },
-  { id: 6, occupied: false, user: null },
-  { id: 7, occupied: false, user: null },
-  { id: 8, occupied: false, user: null },
 ];
 
 const RoomsPage = () => {
@@ -257,158 +254,177 @@ const RoomsPage = () => {
 
         {room && (
           <section className="music-room-layout">
-            {/* Voice Section */}
-            <div className="voice-section">
-              <h3>🎤 Voice Chat</h3>
-              <div className="voice-seats-grid">
-                {voiceSeatsInitial.map((seat) => (
-                  <div key={seat.id} className={`voice-seat ${seat.occupied ? "occupied" : "empty"}`}>
-                    <div className="seat-info">
+            {/* LEFT COLUMN: Voice + Music */}
+            <div className="room-left-col">
+              {/* Voice Section */}
+              <div className="voice-section">
+                <h3>🎤 Voice Chat</h3>
+                <div className="voice-seats-grid">
+                  {voiceSeatsInitial.map((seat) => (
+                    <button
+                      key={seat.id}
+                      type="button"
+                      className={`voice-seat ${seat.occupied ? "occupied" : "empty"}`}
+                    >
                       <span className="seat-number">{seat.id}</span>
                       {seat.occupied && <span className="seat-user">{seat.user}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Music Player Section */}
-            <div className="music-player-section">
-              {currentTrack && (
-                <div className="now-playing-card">
-                  <div className="track-cover">
-                    <div className="cover-placeholder">🎵</div>
-                  </div>
-                  <h4>{currentTrack.name}</h4>
-                  <p className="artist-name">{currentTrack.artist}</p>
-                  <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{
-                        width: isPlaying ? `${(progress / 180) * 100}%` : "0%",
-                      }}
-                    />
-                  </div>
-                  <div className="controls">
-                    <button
-                      type="button"
-                      onClick={handlePrevTrack}
-                      className="control-btn"
-                    >
-                      ⏮️
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="control-btn play-btn"
-                    >
-                      {isPlaying ? "⏸️" : "▶️"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleNextTrack}
-                      className="control-btn"
-                    >
-                      ⏭️
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLikeTrack(currentTrack.id)}
-                      className={`control-btn like-btn ${likedTracks.includes(currentTrack.id) ? "liked" : ""}`}
-                    >
-                      {likedTracks.includes(currentTrack.id) ? "❤️" : "🤍"}
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Playlist Section */}
-            <div className="playlist-section">
-              <h3>🎵 Shared Playlist</h3>
-              <div className="tracks-list">
-                {tracks.map((track) => (
-                  <div
-                    key={track.id}
-                    className={`track-item ${currentTrackId === track.id ? "active" : ""}`}
-                    onClick={() => handlePlayTrack(track.id)}
-                  >
-                    <div className="track-info">
-                      <div className="track-name">{track.name}</div>
-                      <div className="track-meta">
-                        {track.artist} • {track.genre}
-                      </div>
+              {/* Music Player Section */}
+              <div className="music-player-section">
+                {currentTrack && (
+                  <div className="now-playing-card">
+                    <div className="track-cover">
+                      <div className="cover-placeholder">🎵</div>
                     </div>
-                    <div className="track-actions">
+                    <h4>{currentTrack.name}</h4>
+                    <p className="artist-name">{currentTrack.artist}</p>
+                    <div className="progress-bar">
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: isPlaying ? `${(progress / 180) * 100}%` : "0%",
+                        }}
+                      />
+                    </div>
+                    <div className="controls">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLikeTrack(track.id);
-                        }}
-                        className={`like-mini ${likedTracks.includes(track.id) ? "liked" : ""}`}
+                        onClick={handlePrevTrack}
+                        className="control-btn"
+                        title="Previous track"
                       >
-                        {likedTracks.includes(track.id) ? "❤️" : "🤍"}
+                        ⏮️
                       </button>
-                      <span className="track-likes">{track.likes}</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className="control-btn play-btn"
+                        title={isPlaying ? "Pause" : "Play"}
+                      >
+                        {isPlaying ? "⏸️" : "▶️"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNextTrack}
+                        className="control-btn"
+                        title="Next track"
+                      >
+                        ⏭️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLikeTrack(currentTrack.id)}
+                        className={`control-btn like-btn ${likedTracks.includes(currentTrack.id) ? "liked" : ""}`}
+                        title={likedTracks.includes(currentTrack.id) ? "Remove from likes" : "Add to likes"}
+                      >
+                        {likedTracks.includes(currentTrack.id) ? "❤️" : "🤍"}
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Add Track Section */}
-              <div className="add-track-section">
-                <h4>➕ Add Track</h4>
-                <input
-                  type="text"
-                  value={trackName}
-                  onChange={(e) => setTrackName(e.target.value)}
-                  placeholder="Track name..."
-                  className="track-input"
-                />
-                <input
-                  type="url"
-                  value={trackUrl}
-                  onChange={(e) => setTrackUrl(e.target.value)}
-                  placeholder="URL (optional)"
-                  className="track-input"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTrack}
-                  className="solid-link add-track-btn"
-                >
-                  Add to Playlist
-                </button>
+                )}
               </div>
             </div>
 
-            {/* Chat Section */}
-            <div className="chat-section">
-              <h3>💬 Room Chat</h3>
-              <div className="messages-list room-msg-list">
-                {messages.map((item) => (
-                  <div key={item.id} className={`msg-bubble ${item.system ? "peer" : "self"}`}>
-                    {item.text}
-                  </div>
-                ))}
+            {/* RIGHT COLUMN: Playlist + Chat */}
+            <div className="room-right-col">
+              {/* Playlist Section */}
+              <div className="playlist-section">
+                <h3>🎵 Shared Playlist</h3>
+                <div className="tracks-list">
+                  {tracks.map((track) => (
+                    <div
+                      key={track.id}
+                      className={`track-item ${currentTrackId === track.id ? "active" : ""}`}
+                      onClick={() => handlePlayTrack(track.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === "Enter" && handlePlayTrack(track.id)}
+                    >
+                      <div className="track-info">
+                        <div className="track-name">{track.name}</div>
+                        <div className="track-meta">
+                          {track.artist} • {track.genre}
+                        </div>
+                      </div>
+                      <div className="track-actions">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLikeTrack(track.id);
+                          }}
+                          className={`like-mini ${likedTracks.includes(track.id) ? "liked" : ""}`}
+                          title={likedTracks.includes(track.id) ? "Remove like" : "Add like"}
+                        >
+                          {likedTracks.includes(track.id) ? "❤️" : "🤍"}
+                        </button>
+                        <span className="track-likes">{track.likes}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Track Section */}
+                <div className="add-track-section">
+                  <h4>➕ Add Track</h4>
+                  <input
+                    type="text"
+                    value={trackName}
+                    onChange={(e) => setTrackName(e.target.value)}
+                    placeholder="Track name..."
+                    className="track-input"
+                  />
+                  <input
+                    type="url"
+                    value={trackUrl}
+                    onChange={(e) => setTrackUrl(e.target.value)}
+                    placeholder="URL (optional)"
+                    className="track-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddTrack}
+                    className="solid-link add-track-btn"
+                  >
+                    Add to Playlist
+                  </button>
+                </div>
               </div>
-              <div className="messages-input-row">
-                <input
-                  value={chatText}
-                  onChange={(event) => setChatText(event.target.value)}
-                  placeholder="Type message..."
-                />
-                <button type="button" className="solid-link action-btn" onClick={sendRoomMessage}>
-                  Send
-                </button>
+
+              {/* Chat Section */}
+              <div className="chat-section">
+                <h3>💬 Room Chat</h3>
+                <div className="messages-list room-msg-list">
+                  {messages.map((item) => (
+                    <div key={item.id} className={`msg-bubble ${item.system ? "system" : "user"}`}>
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+                <div className="messages-input-row">
+                  <input
+                    value={chatText}
+                    onChange={(event) => setChatText(event.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && sendRoomMessage()}
+                    placeholder="Type message..."
+                  />
+                  <button type="button" className="solid-link action-btn" onClick={sendRoomMessage}>
+                    Send
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Room Info & Leave */}
-            <div className="room-info-section">
-              <h3>{room.name}</h3>
-              <p className="mono">Members: {room.members.join(", ")}</p>
+            {/* Room Info Footer */}
+            <div className="room-footer">
+              <div className="room-info">
+                <h4>{room.name}</h4>
+                <p className="mono">Members: {room.members.join(", ")}</p>
+              </div>
               <button type="button" className="ghost-link" onClick={leaveRoom}>
                 Leave Room
               </button>
