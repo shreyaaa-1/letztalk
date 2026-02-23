@@ -58,6 +58,7 @@ const DiceFace = ({ value, isRolling, variant }) => {
 
 const GamesPage = () => {
   const [activeGame, setActiveGame] = useState("dice");
+  const [sidebarFeature, setSidebarFeature] = useState(null); // null, 'call', or 'chat'
 
   const [playerScore, setPlayerScore] = useState(0);
   const [botScore, setBotScore] = useState(0);
@@ -234,131 +235,182 @@ const GamesPage = () => {
           </div>
         </header>
 
-        <div className="game-tabs">
-          <button type="button" data-game="dice" className={activeGame === "dice" ? "active" : ""} onClick={() => switchTab("dice")}>🎲 Ludo Dice</button>
-          <button type="button" data-game="quiz" className={activeGame === "slang" ? "active" : ""} onClick={() => switchTab("slang")}>🧠 Learn Gen Z Slang</button>
-          <button type="button" data-game="rps" className={activeGame === "rps" ? "active" : ""} onClick={() => switchTab("rps")}>✊ Rock Paper Scissors</button>
-        </div>
-
-        {activeGame === "dice" && (
-          <section className="game-panel game-panel-dice">
-            <h3>🎰 Ludo Dice Battle</h3>
-            <p>Roll the dice and race to the higher total score.</p>
-
-            <div className="dice-stage">
-              <div className="dice-card">
-                <span>You</span>
-                <DiceFace value={lastRoll.player} isRolling={isRolling} variant="player-die" />
-              </div>
-              <div className="dice-card">
-                <span>Bot</span>
-                <DiceFace value={lastRoll.bot} isRolling={isRolling} variant="bot-die" />
-              </div>
+        <div className="games-main-row">
+          <div className="games-main-area">
+            <div className="game-tabs">
+              <button type="button" data-game="dice" className={activeGame === "dice" ? "active" : ""} onClick={() => switchTab("dice")}>🎲 Ludo Dice</button>
+              <button type="button" data-game="quiz" className={activeGame === "slang" ? "active" : ""} onClick={() => switchTab("slang")}>🧠 Learn Gen Z Slang</button>
+              <button type="button" data-game="rps" className={activeGame === "rps" ? "active" : ""} onClick={() => switchTab("rps")}>✊ Rock Paper Scissors</button>
             </div>
 
-            <div className="score-cards">
-              <div className="score-card player">
-                <span>Your Score</span>
-                <strong>{playerScore}</strong>
-              </div>
-              <div className="score-card bot">
-                <span>Bot Score</span>
-                <strong>{botScore}</strong>
-              </div>
-            </div>
+            {activeGame === "dice" && (
+              <section className="game-panel game-panel-dice">
+                <h3>🎰 Ludo Dice Battle</h3>
+                <p>Roll the dice and race to the higher total score.</p>
 
-            <p className="mono">Last roll: You {lastRoll.player} · Bot {lastRoll.bot}</p>
-            <button type="button" className="solid-link action-btn" onClick={rollDice}>
-              {isRolling ? "Rolling..." : "Roll Dice"}
-            </button>
-          </section>
-        )}
-
-        {activeGame === "slang" && (
-          <section className="game-panel">
-            <h3>🎮 Gen Z Slang Quiz</h3>
-            <div className="quiz-progress-wrap">
-              <div className="quiz-progress-bar" style={{ width: `${quizProgress}%` }} />
-            </div>
-
-            {!quizDone ? (
-              <>
-                <p>{quizQuestion.q}</p>
-                <div className="quiz-options">
-                  {quizQuestion.options.map((option, index) => (
-                    <button
-                      type="button"
-                      key={option}
-                      className={`quiz-option ${
-                        quizLocked
-                          ? index === quizQuestion.answer
-                            ? "correct"
-                            : index === selectedOption
-                              ? "wrong"
-                              : ""
-                          : ""
-                      }`}
-                      onClick={() => pickQuizOption(index)}
-                      disabled={quizLocked}
-                    >
-                      <span>{option}</span>
-                      {quizLocked && index === quizQuestion.answer && <b>✔</b>}
-                      {quizLocked && index === selectedOption && index !== quizQuestion.answer && <b>✖</b>}
-                    </button>
-                  ))}
+                <div className="dice-stage">
+                  <div className="dice-card">
+                    <span>You</span>
+                    <DiceFace value={lastRoll.player} isRolling={isRolling} variant="player-die" />
+                  </div>
+                  <div className="dice-card">
+                    <span>Bot</span>
+                    <DiceFace value={lastRoll.bot} isRolling={isRolling} variant="bot-die" />
+                  </div>
                 </div>
 
-                {quizLocked && (
-                  <div className="quiz-explain">
-                    <strong>{lastAnswerCorrect ? "💡 Nice!" : "💡 Quick learn"}</strong>
-                    <p>{quizQuestion.explanation}</p>
+                <div className="score-cards">
+                  <div className="score-card player">
+                    <span>Your Score</span>
+                    <strong>{playerScore}</strong>
+                  </div>
+                  <div className="score-card bot">
+                    <span>Bot Score</span>
+                    <strong>{botScore}</strong>
+                  </div>
+                </div>
+
+                <p className="mono">Last roll: You {lastRoll.player} · Bot {lastRoll.bot}</p>
+                <button type="button" className="solid-link action-btn" onClick={rollDice}>
+                  {isRolling ? "Rolling..." : "Roll Dice"}
+                </button>
+              </section>
+            )}
+
+            {activeGame === "slang" && (
+              <section className="game-panel">
+                <h3>🎮 Gen Z Slang Quiz</h3>
+                <div className="quiz-progress-wrap">
+                  <div className="quiz-progress-bar" style={{ width: `${quizProgress}%` }} />
+                </div>
+
+                {!quizDone ? (
+                  <>
+                    <p>{quizQuestion.q}</p>
+                    <div className="quiz-options">
+                      {quizQuestion.options.map((option, index) => (
+                        <button
+                          type="button"
+                          key={option}
+                          className={`quiz-option ${
+                            quizLocked
+                              ? index === quizQuestion.answer
+                                ? "correct"
+                                : index === selectedOption
+                                  ? "wrong"
+                                  : ""
+                              : ""
+                          }`}
+                          onClick={() => pickQuizOption(index)}
+                          disabled={quizLocked}
+                        >
+                          <span>{option}</span>
+                          {quizLocked && index === quizQuestion.answer && <b>✔</b>}
+                          {quizLocked && index === selectedOption && index !== quizQuestion.answer && <b>✖</b>}
+                        </button>
+                      ))}
+                    </div>
+
+                    {quizLocked && (
+                      <div className="quiz-explain">
+                        <strong>{lastAnswerCorrect ? "💡 Nice!" : "💡 Quick learn"}</strong>
+                        <p>{quizQuestion.explanation}</p>
+                      </div>
+                    )}
+
+                    <p className="mono">Question {quizIndex + 1}/{slangQuestions.length}</p>
+
+                    <button type="button" className="solid-link action-btn" onClick={goNextQuestion} disabled={!quizLocked}>
+                      {quizIndex === slangQuestions.length - 1 ? "Finish Quiz" : "Next Question"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="quiz-complete">
+                    <h4>Quiz Completed ✅</h4>
+                    <p>Your score: {quizScore}/{slangQuestions.length}</p>
+                    <p className="mono">{getQuizAssessment()}</p>
+                    <button type="button" className="solid-link action-btn" onClick={restartQuiz}>Restart Quiz</button>
                   </div>
                 )}
+              </section>
+            )}
 
-                <p className="mono">Question {quizIndex + 1}/{slangQuestions.length}</p>
+            {activeGame === "rps" && (
+              <section className="game-panel game-panel-rps">
+                <h3>👆 Rock Paper Scissors</h3>
 
-                <button type="button" className="solid-link action-btn" onClick={goNextQuestion} disabled={!quizLocked}>
-                  {quizIndex === slangQuestions.length - 1 ? "Finish Quiz" : "Next Question"}
-                </button>
-              </>
-            ) : (
-              <div className="quiz-complete">
-                <h4>Quiz Completed ✅</h4>
-                <p>Your score: {quizScore}/{slangQuestions.length}</p>
-                <p className="mono">{getQuizAssessment()}</p>
-                <button type="button" className="solid-link action-btn" onClick={restartQuiz}>Restart Quiz</button>
+                <div className="rps-stage">
+                  <div className="rps-hand">{rpsEmoji[rpsPlayerChoice]}</div>
+                  <span className="rps-vs">VS</span>
+                  <div className="rps-hand">{rpsEmoji[rpsBotChoice]}</div>
+                </div>
+
+                <div className={`rps-result ${rpsResult.type}`}>
+                  {rpsResult.text}
+                </div>
+
+                <div className="rps-score">
+                  <span>You: {rpsScore.player}</span>
+                  <span>Bot: {rpsScore.bot}</span>
+                  <span>Draw: {rpsScore.draw}</span>
+                </div>
+
+                <div className="rps-actions">
+                  <button type="button" className="rps-btn rock" onClick={() => playRps("rock")}>✊ Rock</button>
+                  <button type="button" className="rps-btn paper" onClick={() => playRps("paper")}>✋ Paper</button>
+                  <button type="button" className="rps-btn scissors" onClick={() => playRps("scissors")}>✌️ Scissors</button>
+                </div>
+              </section>
+            )}
+          </div>
+
+          <aside className="games-sidebar glass">
+            <div className="sidebar-toggles">
+              <button
+                type="button"
+                className={`sidebar-btn ${sidebarFeature === "call" ? "active" : ""}`}
+                onClick={() => setSidebarFeature(sidebarFeature === "call" ? null : "call")}
+                title="Open Voice Call"
+              >
+                🎤 Voice
+              </button>
+              <button
+                type="button"
+                className={`sidebar-btn ${sidebarFeature === "chat" ? "active" : ""}`}
+                onClick={() => setSidebarFeature(sidebarFeature === "chat" ? null : "chat")}
+                title="Open Text Chat"
+              >
+                💬 Chat
+              </button>
+            </div>
+
+            {sidebarFeature === "call" && (
+              <div className="sidebar-content">
+                <h4>Voice Call</h4>
+                <p>Connect with random strangers via video call.</p>
+                <Link to="/call" className="solid-link action-btn">
+                  Start Voice Call
+                </Link>
               </div>
             )}
-          </section>
-        )}
 
-        {activeGame === "rps" && (
-          <section className="game-panel game-panel-rps">
-            <h3>👆 Rock Paper Scissors</h3>
+            {sidebarFeature === "chat" && (
+              <div className="sidebar-content">
+                <h4>Text Chat</h4>
+                <p>Anonymous text chat with anyone.</p>
+                <Link to="/message" className="solid-link action-btn">
+                  Go to Chat
+                </Link>
+              </div>
+            )}
 
-            <div className="rps-stage">
-              <div className="rps-hand">{rpsEmoji[rpsPlayerChoice]}</div>
-              <span className="rps-vs">VS</span>
-              <div className="rps-hand">{rpsEmoji[rpsBotChoice]}</div>
-            </div>
-
-            <div className={`rps-result ${rpsResult.type}`}>
-              {rpsResult.text}
-            </div>
-
-            <div className="rps-score">
-              <span>You: {rpsScore.player}</span>
-              <span>Bot: {rpsScore.bot}</span>
-              <span>Draw: {rpsScore.draw}</span>
-            </div>
-
-            <div className="rps-actions">
-              <button type="button" className="rps-btn rock" onClick={() => playRps("rock")}>✊ Rock</button>
-              <button type="button" className="rps-btn paper" onClick={() => playRps("paper")}>✋ Paper</button>
-              <button type="button" className="rps-btn scissors" onClick={() => playRps("scissors")}>✌️ Scissors</button>
-            </div>
-          </section>
-        )}
+            {!sidebarFeature && (
+              <div className="sidebar-content">
+                <p className="mono">Click a button to access voice or text features.</p>
+              </div>
+            )}
+          </aside>
+        </div>
 
         <div className="home-actions">
           <Link to="/" className="ghost-link">Home</Link>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="LetzTalk logo">
+  <defs>
+    <linearGradient id="ltg" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#F472B6"/>
+    </linearGradient>
+  </defs>
+
+  <path
+    d="M18 12h28c6.627 0 12 5.373 12 12v14c0 6.627-5.373 12-12 12H33.8L24 56v-6H18c-6.627 0-12-5.373-12-12V24c0-6.627 5.373-12 12-12Z"
+    stroke="url(#ltg)"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <rect x="28" y="20" width="8" height="16" rx="4" fill="url(#ltg)"/>
+  <path
+    d="M24 33.5c0 4.418 3.582 8 8 8s8-3.582 8-8M32 41.5v5M28.5 46.5h7"
+    stroke="url(#ltg)"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <circle cx="47.5" cy="18.5" r="3" fill="url(#ltg)"/>
+</svg>

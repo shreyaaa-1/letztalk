@@ -46,6 +46,8 @@ const RoomsPage = () => {
   const [trackName, setTrackName] = useState("");
   const [trackUrl, setTrackUrl] = useState("");
   const [showJoinSection, setShowJoinSection] = useState(false);
+  const [showVoiceSeats, setShowVoiceSeats] = useState(false);
+  const [sidebarFeature, setSidebarFeature] = useState(null);
 
   const isRegistered = user && user.username && user.username !== "Guest";
   const canChat = Boolean(room?.code);
@@ -213,49 +215,58 @@ const RoomsPage = () => {
           </div>
         </header>
 
-        <section className="match-status glass">
-          <span className="pulse" />
-          <strong>{status}</strong>
-          {room?.code && (
-            <button type="button" className="room-code-chip" onClick={onCopyRoomCode}>
-              Room Code: {room.code} {copied ? "✓" : "📋"}
-            </button>
-          )}
-        </section>
+        <div className="rooms-main-row">
+          <div className="rooms-main-area">
+            <section className="match-status glass">
+              <span className="pulse" />
+              <strong>{status}</strong>
+              {room?.code && (
+                <button type="button" className="room-code-chip" onClick={onCopyRoomCode}>
+                  Room Code: {room.code} {copied ? "✓" : "📋"}
+                </button>
+              )}
+            </section>
 
-        <section className="rooms-grid rooms-grid-polished">
-          <div className="room-card glass">
-            <h3>Create Room</h3>
-            <label>
-              Display Name
-              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-            </label>
-            <label>
-              Room Name
-              <input value={roomName} onChange={(event) => setRoomName(event.target.value)} />
-            </label>
-            <button type="button" className="solid-link action-btn" onClick={createRoom}>Create Room</button>
-          </div>
-
-          {!isRegistered ? (
-            <div className="room-card glass auth-prompt">
-              <h3>🔐 Members Only</h3>
-              <p>Sign up or login to join rooms and collaborate with others.</p>
-              <div className="auth-prompt-actions">
-                <Link to="/auth" className="solid-link action-btn">Sign Up / Login</Link>
+            <section className="rooms-grid rooms-grid-polished">
+              <div className="room-card glass">
+                <h3>Create Room</h3>
+                <label>
+                  Display Name
+                  <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+                </label>
+                <label>
+                  Room Name
+                  <input value={roomName} onChange={(event) => setRoomName(event.target.value)} />
+                </label>
+                <div className="room-primary-actions">
+                  <button type="button" className="solid-link action-btn" onClick={createRoom}>Create Room</button>
+                  {isRegistered && (
+                    <button
+                      type="button"
+                      className={`ghost-link action-btn room-inline-join-btn ${showJoinSection ? "active" : ""}`}
+                      onClick={() => setShowJoinSection(!showJoinSection)}
+                    >
+                      <span className="toggle-icon">{showJoinSection ? "▼" : "▶"}</span>
+                      <span>Join Room</span>
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="room-card glass">
-              <button
-                type="button"
-                className={`room-toggle-btn ${showJoinSection ? "active" : ""}`}
-                onClick={() => setShowJoinSection(!showJoinSection)}
-              >
-                <span className="toggle-icon">{showJoinSection ? "▼" : "▶"}</span>
-                <span>Join Existing Room</span>
-              </button>
-              {showJoinSection && (
+
+              {!isRegistered && (
+                <div className="room-card glass auth-prompt">
+                  <h3>🔐 Members Only</h3>
+                  <p>Sign up or login to join rooms and collaborate with others.</p>
+                  <div className="auth-prompt-actions">
+                    <Link to="/auth" className="solid-link action-btn">Sign Up / Login</Link>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {isRegistered && showJoinSection && (
+              <section className="room-card glass join-room-inline">
+                <h3>Join Existing Room</h3>
                 <div className="join-room-content">
                   <label>
                     Room Code
@@ -272,30 +283,42 @@ const RoomsPage = () => {
                     <button type="button" className="ghost-link action-btn" onClick={leaveRoom} disabled={!canChat}>Leave Room</button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-        </section>
+              </section>
+            )}
 
-        {room && (
-          <section className="music-room-layout">
+            {room && (
+              <section className="music-room-layout">
             {/* LEFT COLUMN: Voice + Music */}
             <div className="room-left-col">
               {/* Voice Section */}
               <div className="voice-section">
-                <h3>🎤 Voice Chat</h3>
-                <div className="voice-seats-grid">
-                  {voiceSeatsInitial.map((seat) => (
-                    <button
-                      key={seat.id}
-                      type="button"
-                      className={`voice-seat ${seat.occupied ? "occupied" : "empty"}`}
-                    >
-                      <span className="seat-number">{seat.id}</span>
-                      {seat.occupied && <span className="seat-user">{seat.user}</span>}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  className={`voice-toggle-btn ${showVoiceSeats ? "active" : ""}`}
+                  onClick={() => setShowVoiceSeats(!showVoiceSeats)}
+                >
+                  <span className="toggle-icon">{showVoiceSeats ? "▼" : "▶"}</span>
+                  <span>🎤 Voice Seats</span>
+                </button>
+
+                {showVoiceSeats && (
+                  <div className="voice-seats-container">
+                    <div className="voice-seats-grid">
+                      {voiceSeatsInitial.map((seat) => (
+                        <button
+                          key={seat.id}
+                          type="button"
+                          className={`voice-seat-card ${seat.occupied ? "occupied" : "empty"}`}
+                        >
+                          <div className="seat-icon-large">
+                            {seat.occupied ? "👤" : "👥"}
+                          </div>
+                          <div className="seat-label">{seat.occupied ? seat.user : "Empty"}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Music Player Section */}
@@ -424,11 +447,15 @@ const RoomsPage = () => {
               <div className="chat-section">
                 <h3>💬 Room Chat</h3>
                 <div className="messages-list room-msg-list">
-                  {messages.map((item) => (
-                    <div key={item.id} className={`msg-bubble ${item.system ? "system" : "user"}`}>
-                      {item.text}
-                    </div>
-                  ))}
+                  {messages.length === 0 ? (
+                    <div className="empty-chat-state">No messages yet. Start the conversation!</div>
+                  ) : (
+                    messages.map((item) => (
+                      <div key={item.id} className={`msg-bubble ${item.system ? "system" : "user"}`}>
+                        {item.text}
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="messages-input-row">
                   <input
@@ -454,12 +481,73 @@ const RoomsPage = () => {
                 Leave Room
               </button>
             </div>
-          </section>
-        )}
+              </section>
+            )}
 
-        {error && <p className="form-error room-error">{error}</p>}
+            {error && <p className="form-error room-error">{error}</p>}
 
-        {toast && <div className={`toast-notification ${toast.type}`}>{toast.text}</div>}
+            {toast && <div className={`toast-notification ${toast.type}`}>{toast.text}</div>}
+          </div>
+
+          <aside className="rooms-sidebar glass">
+            <div className="sidebar-toggles">
+              <button
+                type="button"
+                className={`sidebar-btn ${sidebarFeature === "call" ? "active" : ""}`}
+                onClick={() => setSidebarFeature(sidebarFeature === "call" ? null : "call")}
+                title="Open Voice Call"
+              >
+                🎤 Voice
+              </button>
+              <button
+                type="button"
+                className={`sidebar-btn ${sidebarFeature === "chat" ? "active" : ""}`}
+                onClick={() => setSidebarFeature(sidebarFeature === "chat" ? null : "chat")}
+                title="Open Text Chat"
+              >
+                💬 Chat
+              </button>
+              <button
+                type="button"
+                className={`sidebar-btn ${sidebarFeature === "games" ? "active" : ""}`}
+                onClick={() => setSidebarFeature(sidebarFeature === "games" ? null : "games")}
+                title="Open Games"
+              >
+                🎮 Games
+              </button>
+            </div>
+
+            {sidebarFeature === "call" && (
+              <div className="sidebar-content">
+                <h4>Voice Call</h4>
+                <p>Match with random users in voice/video mode.</p>
+                <Link to="/call" className="solid-link action-btn">Start Voice Call</Link>
+              </div>
+            )}
+
+            {sidebarFeature === "chat" && (
+              <div className="sidebar-content">
+                <h4>Text Chat</h4>
+                <p>Jump into instant anonymous messaging.</p>
+                <Link to="/message" className="solid-link action-btn">Go to Chat</Link>
+              </div>
+            )}
+
+            {sidebarFeature === "games" && (
+              <div className="sidebar-content">
+                <h4>Quick Games</h4>
+                <p>Play mini-games while waiting for friends.</p>
+                <Link to="/games" className="solid-link action-btn">Play Games</Link>
+              </div>
+            )}
+
+            {!sidebarFeature && (
+              <div className="sidebar-content">
+                <p className="mono">Choose Voice, Chat, or Games from the buttons above.</p>
+              </div>
+            )}
+          </aside>
+        </div>
 
         <div className="home-actions">
           <Link to="/" className="ghost-link">Home</Link>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import http from "../api/http";
 import { SOCKET_URL } from "../config";
@@ -9,11 +9,10 @@ const ICE_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
-const MatchPage = ({ defaultFeature = "voice" }) => {
+const MatchPage = () => {
   const { user, isLoggedInUser, continueAsGuest, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState("idle");
   const [partnerId, setPartnerId] = useState("");
@@ -22,6 +21,9 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
   const [message, setMessage] = useState(() => location.state?.notice || "");
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
+  const [showReportPanel, setShowReportPanel] = useState(false);
+  const [localStreamReady, setLocalStreamReady] = useState(false);
+  const [remoteStreamReady, setRemoteStreamReady] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -40,6 +42,8 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null;
     }
+
+    setRemoteStreamReady(false);
   }, []);
 
   const ensureLocalMedia = useCallback(async () => {
@@ -48,8 +52,8 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
       audio: true,
+      video: false,
     });
 
     localStreamRef.current = stream;
@@ -57,6 +61,8 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = stream;
     }
+
+    setLocalStreamReady(true);
 
     return stream;
   }, []);
@@ -76,6 +82,7 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
       }
+      setRemoteStreamReady(true);
     };
 
     peer.onicecandidate = (event) => {
@@ -104,6 +111,7 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
     setStatus("idle");
     setMessage(nextMessage);
     setError("");
+    setShowReportPanel(false);
     closePeer();
   }, [closePeer]);
 
@@ -124,6 +132,7 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
       setPartnerId(incomingPartnerId);
       setMessage("You’re connected ✨");
       setError("");
+      setShowReportPanel(false);
 
       try {
         const shouldInitiateOffer = socket.id < incomingPartnerId;
@@ -204,6 +213,9 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
         localStreamRef.current = null;
       }
+
+      setLocalStreamReady(false);
+      setRemoteStreamReady(false);
     };
   }, [closePeer, createPeer, resetMatchState]);
 
@@ -263,22 +275,18 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
     }
   };
 
-  const feature = searchParams.get("feature") || defaultFeature;
-  const featureLabel = feature === "text" ? "Text chat" : feature === "games" ? "Games" : "Voice call";
-  const statusText = status === "searching" ? "Finding someone interesting…" : status === "matched" ? "You’re connected ✨" : message || "Ready when you are.";
+  const isMatched = status === "matched";
 
   return (
     <div className="center-screen">
       <div className="match-shell glass">
         <header className="match-header">
           <div>
+            <p className="site-name">LETZTALK</p>
             <h2 className="match-title">
               Connect with
               <span>Random Strangers</span>
             </h2>
-            <p>
-              {user?.username || "Anonymous"} · {user ? (user?.isGuest ? "Guest" : "Registered") : "No login"}
-            </p>
           </div>
           <div className="header-actions">
             {!user && (
@@ -291,7 +299,7 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
                 Login / Register
               </Link>
             )}
-            {user && (
+            {isLoggedInUser && (
               <button type="button" className="ghost-btn small" onClick={logout}>
                 Logout
               </button>
@@ -299,62 +307,127 @@ const MatchPage = ({ defaultFeature = "voice" }) => {
           </div>
         </header>
 
-        <section className="match-status glass">
-          <span className={`pulse ${status === "matched" ? "live" : ""}`} />
-          <strong>{statusText}</strong>
-          <span className="mono">Mode: {featureLabel}</span>
-        </section>
+        <div className="match-main-area">
+            {!isMatched ? (
+              <section className="connect-card glass">
+                <div className="connect-icon" aria-hidden="true">
+                  <img src="/letztalk.svg" alt="" className="connect-icon-logo" />
+                </div>
+                <h3>LETZTALK</h3>
+                <p>{status === "searching" ? message || "Finding someone interesting…" : "Find a random stranger to talk with"}</p>
+                <button
+                  type="button"
+                  className="solid-link connect-find-btn"
+                  onClick={findMatch}
+                  disabled={status === "searching"}
+                >
+                  {status === "searching" ? "⏳ FINDING..." : "🔍 FIND SOMEONE"}
+                </button>
+              </section>
+            ) : (
+              <section className="video-grid">
+                <div className="video-card glass">
+                  <span>Voice Panel · You</span>
+                  <div className={`video-media-wrap ${localStreamReady ? "has-stream" : ""}`}>
+                    <video ref={localVideoRef} autoPlay playsInline muted onLoadedData={() => setLocalStreamReady(true)} />
+                    {!localStreamReady && (
+                      <div className="video-placeholder">
+                        <div className="video-placeholder-icon">🎤</div>
+                        <p>Enable microphone to start</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="video-card glass">
+                  <span>Voice Panel · {partnerId ? "Partner connected" : "Waiting for match"}</span>
+                  <div className={`video-media-wrap ${remoteStreamReady ? "has-stream" : ""}`}>
+                    <video ref={remoteVideoRef} autoPlay playsInline onLoadedData={() => setRemoteStreamReady(true)} />
+                    {!remoteStreamReady && (
+                      <div className="video-placeholder">
+                        <div className="video-placeholder-icon">👤</div>
+                        <p>{partnerId ? "Waiting for partner voice" : "Waiting for match"}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
 
-        <section className="video-grid">
-          <div className="video-card glass">
-            <span>Voice Panel · You</span>
-            <video ref={localVideoRef} autoPlay playsInline muted />
-          </div>
-          <div className="video-card glass">
-            <span>Voice Panel · {partnerId ? "Partner connected" : "Waiting for match"}</span>
-            <video ref={remoteVideoRef} autoPlay playsInline />
-          </div>
-        </section>
-
-        <section className="chat-panel glass">
-          <div className="chat-header">
-            <h3>Text Chat & Safety</h3>
-            <label>
-              Report reason
-              <select value={reason} onChange={(event) => setReason(event.target.value)}>
-                <option value="inappropriate_behavior">Inappropriate behavior</option>
-                <option value="harassment">Harassment</option>
-                <option value="spam">Spam</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-          </div>
-          <p className="chat-meta">This space is optimized for calm, anonymous and moderated conversations.</p>
-          {error && <p className="form-error">{error}</p>}
-          {!isLoggedInUser && <p className="hint">Report and block actions require login.</p>}
-        </section>
-
-        <div className="control-dock-wrap">
-          <section className="control-dock glass">
-            <button type="button" className="dock-btn" onClick={toggleMute} title="Mute">
-              <span>{isMuted ? "🔇" : "🎤"}</span>
-            </button>
-            <button
-              type="button"
-              className="dock-btn"
-              onClick={status === "matched" ? skipPartner : findMatch}
-              title="Next"
-            >
-              <span>⏭️</span>
-            </button>
-            <button type="button" className="dock-btn" onClick={submitReport} title="Report">
-              <span>🚩</span>
-            </button>
-            <button type="button" className="dock-btn danger" onClick={endCall} disabled={!partnerId} title="End">
-              <span>❌</span>
-            </button>
-          </section>
+            {isMatched && showReportPanel && (
+              <section className="chat-panel glass report-panel">
+                <div className="chat-header">
+                  <h3>Text Chat & Safety</h3>
+                  <label>
+                    Report reason
+                    <select value={reason} onChange={(event) => setReason(event.target.value)}>
+                      <option value="inappropriate_behavior">Inappropriate behavior</option>
+                      <option value="harassment">Harassment</option>
+                      <option value="spam">Spam</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                </div>
+                <p className="chat-meta">This space is optimized for calm, anonymous and moderated conversations.</p>
+                {error && <p className="form-error">{error}</p>}
+                {!isLoggedInUser && <p className="hint">Report and block actions require login.</p>}
+                <div className="report-action-row">
+                  <button type="button" className="solid-link action-btn" onClick={submitReport}>Submit Report</button>
+                  <button type="button" className="ghost-link action-btn" onClick={() => setShowReportPanel(false)}>Close</button>
+                </div>
+              </section>
+            )}
         </div>
+
+        {isMatched && (
+          <div className="control-dock-wrap">
+            <section className="control-dock glass">
+              <button
+                type="button"
+                className="dock-btn"
+                onClick={() => window.open("/games", "_blank", "noopener,noreferrer")}
+                title="Games"
+              >
+                <span className="dock-icon">🎮</span>
+                <span className="dock-label">Games</span>
+              </button>
+              <button
+                type="button"
+                className="dock-btn"
+                onClick={() => window.open("/message", "_blank", "noopener,noreferrer")}
+                title="Chat"
+              >
+                <span className="dock-icon">💬</span>
+                <span className="dock-label">Chat</span>
+              </button>
+              <button type="button" className="dock-btn" onClick={toggleMute} title="Mute">
+                <span className="dock-icon">{isMuted ? "🔇" : "🎤"}</span>
+                <span className="dock-label">Mute</span>
+              </button>
+              <button
+                type="button"
+                className="dock-btn"
+                onClick={skipPartner}
+                title="Next"
+              >
+                <span className="dock-icon">⏭️</span>
+                <span className="dock-label">People</span>
+              </button>
+              <button
+                type="button"
+                className={`dock-btn ${showReportPanel ? "report-active" : ""}`}
+                onClick={() => setShowReportPanel((prev) => !prev)}
+                title="Report"
+              >
+                <span className="dock-icon">🚩</span>
+                <span className="dock-label">Report</span>
+              </button>
+              <button type="button" className="dock-btn danger" onClick={endCall} disabled={!partnerId} title="End">
+                <span className="dock-icon">❌</span>
+                <span className="dock-label">End</span>
+              </button>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const AuthPage = () => {
-  const { login, register, continueAsGuest } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -62,7 +62,7 @@ const AuthPage = () => {
     }
 
     navTimerRef.current = setTimeout(() => {
-      navigate("/call");
+      navigate("/call?feature=voice");
     }, 900);
   };
 
@@ -95,23 +95,6 @@ const AuthPage = () => {
     }
   };
 
-  const onGuest = async () => {
-    setError("");
-    setLoading(true);
-
-    try {
-      await continueAsGuest();
-      showPopup("Guest session started. Redirecting to match...", "success");
-      scheduleNavigateToMatch();
-    } catch (requestError) {
-      const friendlyError = getFriendlyError(requestError, "Guest login failed");
-      setError(friendlyError);
-      showPopup(friendlyError, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="auth-layout">
       <div className="auth-card glass auth-shell">
@@ -121,91 +104,96 @@ const AuthPage = () => {
           Connect with
           <span>Random Strangers</span>
         </h1>
-        <p className="auth-subtitle">Login/register is optional. Start safe spontaneous conversations anytime.</p>
 
-        <Link to="/call" className="solid-link full-link">
-          Start Random Talk (No Login)
-        </Link>
+        <div className="auth-main-row">
+          <div className="auth-main-area">
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={mode === "login" ? "active" : ""}
+                onClick={() => setMode("login")}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                className={mode === "register" ? "active" : ""}
+                onClick={() => setMode("register")}
+              >
+                Register
+              </button>
+            </div>
 
-        <div className="auth-tabs">
-          <button
-            type="button"
-            className={mode === "login" ? "active" : ""}
-            onClick={() => setMode("login")}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            className={mode === "register" ? "active" : ""}
-            onClick={() => setMode("register")}
-          >
-            Register
-          </button>
-        </div>
+            <form onSubmit={onSubmit} className="auth-form">
+              {mode === "register" && (
+                <>
+                  <label>
+                    Username
+                    <input
+                      name="username"
+                      value={form.username}
+                      onChange={onChange}
+                      placeholder="yourname"
+                      required
+                    />
+                  </label>
 
-        <form onSubmit={onSubmit} className="auth-form">
-          {mode === "register" && (
-            <>
+                  <div className="username-suggest">
+                    {suggestions.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, username: name }))}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
               <label>
-                Username
+                Email
                 <input
-                  name="username"
-                  value={form.username}
+                  type="email"
+                  name="email"
+                  value={form.email}
                   onChange={onChange}
-                  placeholder="yourname"
+                  placeholder="you@example.com"
                   required
                 />
               </label>
 
-              <div className="username-suggest">
-                {suggestions.map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, username: name }))}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+              <label>
+                Password
+                <input
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={onChange}
+                  placeholder="••••••••"
+                  required
+                />
+              </label>
 
-          <label>
-            Email
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={onChange}
-              placeholder="you@example.com"
-              required
-            />
-          </label>
+              {error && <p className="form-error">{error}</p>}
 
-          <label>
-            Password
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={onChange}
-              placeholder="••••••••"
-              required
-            />
-          </label>
+              <button type="submit" disabled={loading}>
+                {loading ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
+              </button>
+            </form>
+          </div>
 
-          {error && <p className="form-error">{error}</p>}
-
-          <button type="submit" disabled={loading}>
-            {loading ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
-          </button>
-        </form>
-
-        <button type="button" className="ghost-btn" onClick={onGuest} disabled={loading}>
-          Continue as guest
-        </button>
+          <aside className="auth-sidebar glass">
+            <h3>✨ Explore Features</h3>
+            <div className="auth-feature-links">
+              <Link to="/call?feature=voice" className="ghost-link auth-feature-link">🎙️ Voice Call</Link>
+              <Link to="/message" className="ghost-link auth-feature-link">💬 Text Chat</Link>
+              <Link to="/games" className="ghost-link auth-feature-link">🎮 Play Games</Link>
+              <Link to="/rooms" className="ghost-link auth-feature-link">🏡 Rooms</Link>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );
