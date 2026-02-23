@@ -45,7 +45,9 @@ const RoomsPage = () => {
   const [likedTracks, setLikedTracks] = useState([]);
   const [trackName, setTrackName] = useState("");
   const [trackUrl, setTrackUrl] = useState("");
+  const [showJoinSection, setShowJoinSection] = useState(false);
 
+  const isRegistered = user && user.username && user.username !== "Guest";
   const canChat = Boolean(room?.code);
   const welcomeName = useMemo(() => displayName.trim() || "Guest", [displayName]);
   const currentTrack = useMemo(() => tracks.find((t) => t.id === currentTrackId) || tracks[0], [tracks, currentTrackId]);
@@ -235,21 +237,44 @@ const RoomsPage = () => {
             <button type="button" className="solid-link action-btn" onClick={createRoom}>Create Room</button>
           </div>
 
-          <div className="room-card glass">
-            <h3>Join Room</h3>
-            <label>
-              Room Code
-              <input
-                value={joinCode}
-                onChange={(event) => setJoinCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="4-digit code"
-                inputMode="numeric"
-                maxLength={4}
-              />
-            </label>
-            <button type="button" className="ghost-link" onClick={joinRoom}>Join</button>
-            <button type="button" className="ghost-link" onClick={leaveRoom} disabled={!canChat}>Leave Room</button>
-          </div>
+          {!isRegistered ? (
+            <div className="room-card glass auth-prompt">
+              <h3>🔐 Members Only</h3>
+              <p>Sign up or login to join rooms and collaborate with others.</p>
+              <div className="auth-prompt-actions">
+                <Link to="/auth" className="solid-link action-btn">Sign Up / Login</Link>
+              </div>
+            </div>
+          ) : (
+            <div className="room-card glass">
+              <button
+                type="button"
+                className={`room-toggle-btn ${showJoinSection ? "active" : ""}`}
+                onClick={() => setShowJoinSection(!showJoinSection)}
+              >
+                <span className="toggle-icon">{showJoinSection ? "▼" : "▶"}</span>
+                <span>Join Existing Room</span>
+              </button>
+              {showJoinSection && (
+                <div className="join-room-content">
+                  <label>
+                    Room Code
+                    <input
+                      value={joinCode}
+                      onChange={(event) => setJoinCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="4-digit code"
+                      inputMode="numeric"
+                      maxLength={4}
+                    />
+                  </label>
+                  <div className="join-actions">
+                    <button type="button" className="solid-link action-btn" onClick={joinRoom}>Join</button>
+                    <button type="button" className="ghost-link action-btn" onClick={leaveRoom} disabled={!canChat}>Leave Room</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {room && (
