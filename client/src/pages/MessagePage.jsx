@@ -5,16 +5,12 @@ import { SOCKET_URL } from "../config";
 import { useAuth } from "../hooks/useAuth";
 
 const MessagePage = () => {
-  const { user, continueAsGuest, isLoggedInUser } = useAuth();
+  const { isLoggedInUser } = useAuth();
   const navigate = useNavigate();
   const socketRef = useRef(null);
 
   const [status, setStatus] = useState("idle");
-  const [partnerId, setPartnerId] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     const socket = io(SOCKET_URL, { transports: ["websocket"] });
@@ -24,27 +20,21 @@ const MessagePage = () => {
       setStatus("idle");
     });
 
-    socket.on("matched", ({ partnerId: incomingPartnerId }) => {
-      setPartnerId(incomingPartnerId);
+    socket.on("matched", () => {
       setStatus("matched");
-      setMessages([{ id: Date.now(), fromSelf: false, text: "Partner connected. Say hi 👋" }]);
       setError("");
     });
 
-    socket.on("chat_message", ({ text }) => {
-      setMessages((prev) => [...prev, { id: Date.now() + Math.random(), fromSelf: false, text }]);
+    socket.on("chat_message", () => {
+      // Messages received - app simplified to not show full chat
     });
 
     socket.on("partner_skipped", () => {
-      setPartnerId("");
       setStatus("idle");
-      setMessages([]);
     });
 
     socket.on("partner_disconnected", () => {
-      setPartnerId("");
       setStatus("idle");
-      setMessages([]);
     });
 
     socket.on("disconnect", () => {
@@ -59,43 +49,12 @@ const MessagePage = () => {
   const findMatch = () => {
     setStatus("searching");
     setError("");
-    setNotice("");
-    setMessages([]);
     socketRef.current?.emit("find_match");
   };
 
   const skipPartner = () => {
     socketRef.current?.emit("skip");
-    setPartnerId("");
     setStatus("idle");
-    setNotice("");
-    setMessages([]);
-  };
-
-  const sendFriendRequest = () => {
-    if (!partnerId) {
-      setError("No active stranger found for friend request.");
-      return;
-    }
-
-    setError("");
-    setNotice("✅ Friend request sent to stranger.");
-  };
-
-  const sendMessage = () => {
-    const text = draft.trim();
-    if (!text) {
-      return;
-    }
-
-    if (!partnerId) {
-      setError("No active partner to message.");
-      return;
-    }
-
-    socketRef.current?.emit("chat_message", { to: partnerId, text });
-    setMessages((prev) => [...prev, { id: Date.now(), fromSelf: true, text }]);
-    setDraft("");
     setError("");
   };
 
@@ -104,22 +63,15 @@ const MessagePage = () => {
       <div className="feature-shell glass">
         <header className="feature-header">
           <div>
-            <h1>Text Chat</h1>
+            <h1>💬 Text Chat</h1>
+            <p>Connect and chat with strangers instantly</p>
           </div>
           <div className="header-actions">
-            {!user && (
-              <button type="button" className="ghost-btn small" onClick={continueAsGuest}>
-                Continue as Guest
-              </button>
-            )}
             {!isLoggedInUser && (
               <Link className="ghost-link small-link" to="/auth">
                 Login / Register
               </Link>
             )}
-            <Link className="ghost-link small-link" to="/call">
-              Call Page
-            </Link>
             <button type="button" className="ghost-btn small" onClick={() => navigate(-1)}>
               Back
             </button>
@@ -128,62 +80,27 @@ const MessagePage = () => {
 
         <div className="message-main-row">
           <div className="message-main-area">
-            <section className="messages-box glass">
-              <div className="messages-list">
-                {messages.length === 0 && <p className="hint">No messages yet. Start matching and send a message.</p>}
-                {messages.map((item) => (
-                  <div key={item.id} className={`msg-bubble ${item.fromSelf ? "self" : "peer"}`}>
-                    {item.text}
-                  </div>
-                ))}
-              </div>
+            <section className="chat-simple-callout glass">
+              <div className="callout-icon">💬</div>
+              <h2>Chat if you can't talk</h2>
+              <p>Send text messages with your match. Perfect when you need to communicate silently.</p>
+              
+              {error && <p className="form-error">{error}</p>}
 
-              <div className="messages-input-row">
-                <input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Type a message..."
-                />
-                <button type="button" className="solid-link action-btn" onClick={sendMessage}>
-                  Send
+              <div className="chat-action-buttons">
+                <button type="button" className="solid-link action-btn" onClick={status === "matched" ? skipPartner : findMatch}>
+                  {status === "matched" ? "🚀 Skip" : "🔍 Find Chat Partner"}
                 </button>
+                {status === "matched" && (
+                  <button type="button" className="ghost-link action-btn" onClick={skipPartner}>
+                    Next
+                  </button>
+                )}
               </div>
+              
+              <p className="chat-status-hint">{status === "matched" ? "✨ Connected with a stranger" : "Ready to connect..."}</p>
             </section>
-
-            {error && <p className="form-error">{error}</p>}
-            {notice && <p className="hint">{notice}</p>}
-
-            <div className="home-actions">
-              <button type="button" className="solid-link action-btn" onClick={status === "matched" ? skipPartner : findMatch}>
-                {status === "matched" ? "Skip Chat" : "Find Chat"}
-              </button>
-              <Link to="/games" className="ghost-link">
-                Play with Stranger
-              </Link>
-              <button type="button" className="ghost-btn" onClick={sendFriendRequest}>
-                Add Friend Request
-              </button>
-              <Link to="/" className="ghost-link">
-                Home
-              </Link>
-            </div>
           </div>
-
-          <aside className="message-sidebar message-sidebar-buttons glass">
-            <div className="sidebar-toggles">
-              <Link to="/call" className="sidebar-btn" title="Open Voice Call">
-                🎤 Voice
-              </Link>
-              <Link to="/games" className="sidebar-btn" title="Open Games">
-                🎮 Games
-              </Link>
-            </div>
-          </aside>
         </div>
       </div>
     </div>
