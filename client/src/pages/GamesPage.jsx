@@ -235,14 +235,14 @@ const GamesPage = () => {
         </header>
 
         <div className="game-tabs">
-          <button type="button" className={activeGame === "dice" ? "active" : ""} onClick={() => switchTab("dice")}>🎲 Ludo Dice</button>
-          <button type="button" className={activeGame === "slang" ? "active" : ""} onClick={() => switchTab("slang")}>🧠 Learn Gen Z Slang</button>
-          <button type="button" className={activeGame === "rps" ? "active" : ""} onClick={() => switchTab("rps")}>✊ Rock Paper Scissors</button>
+          <button type="button" data-game="dice" className={activeGame === "dice" ? "active" : ""} onClick={() => switchTab("dice")}>🎲 Ludo Dice</button>
+          <button type="button" data-game="quiz" className={activeGame === "slang" ? "active" : ""} onClick={() => switchTab("slang")}>🧠 Learn Gen Z Slang</button>
+          <button type="button" data-game="rps" className={activeGame === "rps" ? "active" : ""} onClick={() => switchTab("rps")}>✊ Rock Paper Scissors</button>
         </div>
 
         {activeGame === "dice" && (
-          <section className="game-panel game-panel-dice glass">
-            <h3>Ludo Dice Battle</h3>
+          <section className="game-panel game-panel-dice">
+            <h3>🎰 Ludo Dice Battle</h3>
             <p>Roll the dice and race to the higher total score.</p>
 
             <div className="dice-stage">
@@ -275,8 +275,8 @@ const GamesPage = () => {
         )}
 
         {activeGame === "slang" && (
-          <section className="game-panel glass">
-            <h3>Gen Z Slang Quiz</h3>
+          <section className="game-panel">
+            <h3>🎮 Gen Z Slang Quiz</h3>
             <div className="quiz-progress-wrap">
               <div className="quiz-progress-bar" style={{ width: `${quizProgress}%` }} />
             </div>
@@ -333,8 +333,8 @@ const GamesPage = () => {
         )}
 
         {activeGame === "rps" && (
-          <section className="game-panel game-panel-rps glass">
-            <h3>Rock Paper Scissors</h3>
+          <section className="game-panel game-panel-rps">
+            <h3>👆 Rock Paper Scissors</h3>
 
             <div className="rps-stage">
               <div className="rps-hand">{rpsEmoji[rpsPlayerChoice]}</div>
