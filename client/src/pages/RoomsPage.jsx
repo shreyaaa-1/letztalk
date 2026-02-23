@@ -1,12 +1,33 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import { SOCKET_URL } from "../config";
 import { useAuth } from "../hooks/useAuth";
 
+const initialTracks = [
+  { id: 1, name: "Lo-Fi Chill Beats", artist: "Lo-Fi System", genre: "Lo-Fi", likes: 24, addedBy: "System", url: "" },
+  { id: 2, name: "Ambient Waves", artist: "Ambient Studio", genre: "Ambient", likes: 18, addedBy: "System", url: "" },
+  { id: 3, name: "Electronic Dreams", artist: "Synth Wave", genre: "Electronic", likes: 31, addedBy: "System", url: "" },
+  { id: 4, name: "Jazz in the Night", artist: "Jazz Collective", genre: "Jazz", likes: 12, addedBy: "System", url: "" },
+  { id: 5, name: "Rock Anthem", artist: "Rock Masters", genre: "Rock", likes: 42, addedBy: "System", url: "" },
+  { id: 6, name: "Classical Piano", artist: "Piano Virtuoso", genre: "Classical", likes: 9, addedBy: "System", url: "" },
+];
+
+const voiceSeatsInitial = [
+  { id: 1, occupied: false, user: null },
+  { id: 2, occupied: false, user: null },
+  { id: 3, occupied: false, user: null },
+  { id: 4, occupied: false, user: null },
+  { id: 5, occupied: false, user: null },
+  { id: 6, occupied: false, user: null },
+  { id: 7, occupied: false, user: null },
+  { id: 8, occupied: false, user: null },
+];
+
 const RoomsPage = () => {
   const { user } = useAuth();
   const socketRef = useRef(null);
+  const toastTimerRef = useRef(null);
 
   const [displayName, setDisplayName] = useState(user?.username || "Guest");
   const [roomName, setRoomName] = useState("My Chill Room");
@@ -17,9 +38,81 @@ const RoomsPage = () => {
   const [status, setStatus] = useState("Connecting...");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Music room state
+  const [currentTrackId, setCurrentTrackId] = useState(1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [tracks, setTracks] = useState(initialTracks);
+  const [likedTracks, setLikedTracks] = useState([]);
+  const [trackName, setTrackName] = useState("");
+  const [trackUrl, setTrackUrl] = useState("");
 
   const canChat = Boolean(room?.code);
   const welcomeName = useMemo(() => displayName.trim() || "Guest", [displayName]);
+  const currentTrack = useMemo(() => tracks.find((t) => t.id === currentTrackId) || tracks[0], [tracks, currentTrackId]);
+
+  const showToast = (text, type = "info") => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToast({ text, type });
+    toastTimerRef.current = setTimeout(() => setToast(null), 2000);
+  };
+
+  const handleNextTrack = useCallback(() => {
+    setCurrentTrackId((prevId) => {
+      const currentIndex = tracks.findIndex((t) => t.id === prevId);
+      const nextIndex = (currentIndex + 1) % tracks.length;
+      showToast(`🎵 Playing: ${tracks[nextIndex].name}`);
+      return tracks[nextIndex].id;
+    });
+  }, [tracks]);
+
+  const handlePrevTrack = useCallback(() => {
+    setCurrentTrackId((prevId) => {
+      const currentIndex = tracks.findIndex((t) => t.id === prevId);
+      const prevIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+      showToast(`🎵 Playing: ${tracks[prevIndex].name}`);
+      return tracks[prevIndex].id;
+    });
+  }, [tracks]);
+
+  const handlePlayTrack = (trackId) => {
+    setCurrentTrackId(trackId);
+    setIsPlaying(true);
+    setProgress(0);
+    showToast(`🎵 Playing: ${tracks.find((t) => t.id === trackId)?.name}`);
+  };
+
+  const handleLikeTrack = (trackId) => {
+    if (likedTracks.includes(trackId)) {
+      setLikedTracks((prev) => prev.filter((id) => id !== trackId));
+      showToast("💔 Removed from likes");
+    } else {
+      setLikedTracks((prev) => [...prev, trackId]);
+      showToast("❤️ Added to likes");
+    }
+  };
+
+  const handleAddTrack = () => {
+    if (trackName.trim()) {
+      const newTrack = {
+        id: tracks.length + 1,
+        name: trackName,
+        artist: "Unknown",
+        genre: "Music",
+        likes: 0,
+        addedBy: welcomeName,
+        url: trackUrl,
+      };
+      setTracks((prev) => [...prev, newTrack]);
+      showToast(`✨ "${trackName}" added to shared playlist`);
+      setTrackName("");
+      setTrackUrl("");
+    }
+  };
 
   useEffect(() => {
     const socket = io(SOCKET_URL, { transports: ["websocket"] });
@@ -163,22 +256,169 @@ const RoomsPage = () => {
         </section>
 
         {room && (
-          <section className="room-card glass">
-            <h3>{room.name}</h3>
-            <p className="mono">Members: {room.members.join(", ")}</p>
-            <div className="messages-list room-msg-list">
-              {messages.map((item) => (
-                <div key={item.id} className={`msg-bubble ${item.system ? "peer" : "self"}`}>{item.text}</div>
-              ))}
+          <section className="music-room-layout">
+            {/* Voice Section */}
+            <div className="voice-section">
+              <h3>🎤 Voice Chat</h3>
+              <div className="voice-seats-grid">
+                {voiceSeatsInitial.map((seat) => (
+                  <div key={seat.id} className={`voice-seat ${seat.occupied ? "occupied" : "empty"}`}>
+                    <div className="seat-info">
+                      <span className="seat-number">{seat.id}</span>
+                      {seat.occupied && <span className="seat-user">{seat.user}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="messages-input-row">
-              <input value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="Type room message..." />
-              <button type="button" className="solid-link action-btn" onClick={sendRoomMessage}>Send</button>
+
+            {/* Music Player Section */}
+            <div className="music-player-section">
+              {currentTrack && (
+                <div className="now-playing-card">
+                  <div className="track-cover">
+                    <div className="cover-placeholder">🎵</div>
+                  </div>
+                  <h4>{currentTrack.name}</h4>
+                  <p className="artist-name">{currentTrack.artist}</p>
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: isPlaying ? `${(progress / 180) * 100}%` : "0%",
+                      }}
+                    />
+                  </div>
+                  <div className="controls">
+                    <button
+                      type="button"
+                      onClick={handlePrevTrack}
+                      className="control-btn"
+                    >
+                      ⏮️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className="control-btn play-btn"
+                    >
+                      {isPlaying ? "⏸️" : "▶️"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextTrack}
+                      className="control-btn"
+                    >
+                      ⏭️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLikeTrack(currentTrack.id)}
+                      className={`control-btn like-btn ${likedTracks.includes(currentTrack.id) ? "liked" : ""}`}
+                    >
+                      {likedTracks.includes(currentTrack.id) ? "❤️" : "🤍"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Playlist Section */}
+            <div className="playlist-section">
+              <h3>🎵 Shared Playlist</h3>
+              <div className="tracks-list">
+                {tracks.map((track) => (
+                  <div
+                    key={track.id}
+                    className={`track-item ${currentTrackId === track.id ? "active" : ""}`}
+                    onClick={() => handlePlayTrack(track.id)}
+                  >
+                    <div className="track-info">
+                      <div className="track-name">{track.name}</div>
+                      <div className="track-meta">
+                        {track.artist} • {track.genre}
+                      </div>
+                    </div>
+                    <div className="track-actions">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLikeTrack(track.id);
+                        }}
+                        className={`like-mini ${likedTracks.includes(track.id) ? "liked" : ""}`}
+                      >
+                        {likedTracks.includes(track.id) ? "❤️" : "🤍"}
+                      </button>
+                      <span className="track-likes">{track.likes}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Track Section */}
+              <div className="add-track-section">
+                <h4>➕ Add Track</h4>
+                <input
+                  type="text"
+                  value={trackName}
+                  onChange={(e) => setTrackName(e.target.value)}
+                  placeholder="Track name..."
+                  className="track-input"
+                />
+                <input
+                  type="url"
+                  value={trackUrl}
+                  onChange={(e) => setTrackUrl(e.target.value)}
+                  placeholder="URL (optional)"
+                  className="track-input"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTrack}
+                  className="solid-link add-track-btn"
+                >
+                  Add to Playlist
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Section */}
+            <div className="chat-section">
+              <h3>💬 Room Chat</h3>
+              <div className="messages-list room-msg-list">
+                {messages.map((item) => (
+                  <div key={item.id} className={`msg-bubble ${item.system ? "peer" : "self"}`}>
+                    {item.text}
+                  </div>
+                ))}
+              </div>
+              <div className="messages-input-row">
+                <input
+                  value={chatText}
+                  onChange={(event) => setChatText(event.target.value)}
+                  placeholder="Type message..."
+                />
+                <button type="button" className="solid-link action-btn" onClick={sendRoomMessage}>
+                  Send
+                </button>
+              </div>
+            </div>
+
+            {/* Room Info & Leave */}
+            <div className="room-info-section">
+              <h3>{room.name}</h3>
+              <p className="mono">Members: {room.members.join(", ")}</p>
+              <button type="button" className="ghost-link" onClick={leaveRoom}>
+                Leave Room
+              </button>
             </div>
           </section>
         )}
 
         {error && <p className="form-error room-error">{error}</p>}
+
+        {toast && <div className={`toast-notification ${toast.type}`}>{toast.text}</div>}
 
         <div className="home-actions">
           <Link to="/" className="ghost-link">Home</Link>

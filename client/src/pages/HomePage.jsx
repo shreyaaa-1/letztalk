@@ -67,12 +67,6 @@ const HomePage = () => {
             <p>Break the ice with Ludo or learn Gen Z slang through quiz games.</p>
           </Link>
 
-          <Link to="/music" className="feature-card feature-link glass" aria-label="Go to Music Room">
-            <div className="feature-icon purple">🎵</div>
-            <h3>Neon Nexus Music</h3>
-            <p>Vibe together with shared playlists, voice chat, and collaborative music.</p>
-          </Link>
-
           <Link to="/rooms" className="feature-card feature-link glass" aria-label="Go to Create Rooms">
             <div className="feature-icon violet">👥</div>
             <h3>Create Rooms</h3>
