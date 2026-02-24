@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const slangQuestions = [
   {
@@ -37,28 +37,23 @@ const diceDotMap = {
   6: [1, 3, 4, 6, 7, 9],
 };
 
-const rpsEmoji = {
-  rock: "✊",
-  paper: "✋",
-  scissors: "✌️",
-};
-
-const DiceFace = ({ value, isRolling, variant }) => {
+const DicePips = ({ value, isRolling, variant }) => {
   const activeDots = diceDotMap[value] || [];
 
   return (
-    <div className={`dice-face ${variant} ${isRolling ? "rolling" : ""}`}>
+    <div className={`dice-neon-cube ${variant} ${isRolling ? "rolling" : ""}`} aria-label={`Dice shows ${value}`}>
       {Array.from({ length: 9 }).map((_, index) => {
         const spot = index + 1;
-        return <span key={spot} className={`dot ${activeDots.includes(spot) ? "show" : ""}`} />;
+        return <span key={spot} className={`dice-neon-dot ${activeDots.includes(spot) ? "show" : ""}`} />;
       })}
     </div>
   );
 };
 
 const GamesPage = () => {
-  const [activeGame, setActiveGame] = useState("dice");
-  const [sidebarFeature, setSidebarFeature] = useState(null); // null, 'call', or 'chat'
+  const navigate = useNavigate();
+  const [activeGame, setActiveGame] = useState(null);
+  const [playMode, setPlayMode] = useState(null); // null (show modal), 'bot', or 'multiplayer'
 
   const [playerScore, setPlayerScore] = useState(0);
   const [botScore, setBotScore] = useState(0);
@@ -124,7 +119,7 @@ const GamesPage = () => {
       setBotScore((prev) => prev + bot);
       setIsRolling(false);
 
-      const resultText = player === bot ? "Round draw" : player > bot ? "You won this roll" : "Bot won this roll";
+      const resultText = player === bot ? "Round draw" : player > bot ? "You won this roll" : "LetzTalk won this roll";
       showToast(`🎲 ${resultText}`);
     }, 520);
   };
@@ -169,7 +164,14 @@ const GamesPage = () => {
     setLastAnswerCorrect(null);
     showToast("🔁 Quiz restarted");
   };
+  const handlePlayWithBot = () => {
+    setPlayMode("bot");
+    showToast("🤖 Playing with LetzTalk");
+  };
 
+  const handleFindRandom = () => {
+    navigate("/call?feature=voice");
+  };
   const getQuizAssessment = () => {
     const ratio = quizScore / slangQuestions.length;
     if (ratio === 1) {
@@ -213,15 +215,33 @@ const GamesPage = () => {
       return;
     }
 
-    setRpsResult({ text: `Bot wins! ${botChoice} beats ${choice}`, type: "lose" });
+    setRpsResult({ text: `LetzTalk wins! ${botChoice} beats ${choice}`, type: "lose" });
     setRpsScore((prev) => ({ ...prev, bot: prev.bot + 1 }));
-    showToast("🤖 Bot wins this round", "error");
+    showToast("🤖 LetzTalk wins this round", "error");
   };
 
   return (
     <div className="center-screen">
-      <div className="feature-shell refresh-shell glass">
+      {playMode === null && (
+        <div className="access-modal-overlay">
+          <div className="access-modal glass">
+            <h2>🎮 Choose Game Mode</h2>
+            <p>How would you like to play?</p>
+            <div className="access-modal-actions">
+              <button type="button" className="solid-link action-btn" onClick={handlePlayWithBot}>
+                🤖 Play with LetzTalk
+              </button>
+              <button type="button" className="ghost-link action-btn" onClick={handleFindRandom}>
+                🎲 Find Random Partner
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="feature-shell refresh-shell glass games-zone-embed">
         {toast && <div className={`game-toast ${toast.type}`}>{toast.text}</div>}
+        <div className="games-zone-glow" aria-hidden="true" />
 
         <header className="feature-header">
           <div>
@@ -236,183 +256,188 @@ const GamesPage = () => {
 
         <div className="games-main-row">
           <div className="games-main-area">
-            <div className="game-tabs">
-              <button type="button" data-game="dice" className={activeGame === "dice" ? "active" : ""} onClick={() => switchTab("dice")}>🎲 Ludo Dice</button>
-              <button type="button" data-game="quiz" className={activeGame === "slang" ? "active" : ""} onClick={() => switchTab("slang")}>🧠 Learn Gen Z Slang</button>
-              <button type="button" data-game="rps" className={activeGame === "rps" ? "active" : ""} onClick={() => switchTab("rps")}>✊ Rock Paper Scissors</button>
-            </div>
-
-            {activeGame === "dice" && (
-              <section className="game-panel game-panel-dice">
-                <h3>🎰 Ludo Dice Battle</h3>
-                <p>Roll the dice and race to the higher total score.</p>
-
-                <div className="dice-stage">
-                  <div className="dice-card">
-                    <span>You</span>
-                    <DiceFace value={lastRoll.player} isRolling={isRolling} variant="player-die" />
-                  </div>
-                  <div className="dice-card">
-                    <span>Bot</span>
-                    <DiceFace value={lastRoll.bot} isRolling={isRolling} variant="bot-die" />
-                  </div>
+            
+            {activeGame === null ? (
+              <>
+                <div className="games-zone-hero">
+                  <div className="games-zone-icon" aria-hidden="true">🎮</div>
+                  <h3>PLAY & CONNECT</h3>
+                  <p>Break the ice with arcade-style games!</p>
                 </div>
 
-                <div className="score-cards">
-                  <div className="score-card player">
-                    <span>Your Score</span>
-                    <strong>{playerScore}</strong>
-                  </div>
-                  <div className="score-card bot">
-                    <span>Bot Score</span>
-                    <strong>{botScore}</strong>
-                  </div>
+                <div className="games-selector-row games-zone-tabs">
+                  <button
+                    type="button"
+                    className="game-chip game-zone-chip"
+                    onClick={() => { setActiveGame("dice"); showToast("🎲 Dice ready"); }}
+                  >
+                    🎲 LUDO DICE
+                  </button>
+                  <button
+                    type="button"
+                    className="game-chip game-zone-chip"
+                    onClick={() => { setActiveGame("slang"); showToast("🧠 Quiz started"); }}
+                  >
+                    🧠 GEN Z SLANG
+                  </button>
+                  <button
+                    type="button"
+                    className="game-chip game-zone-chip"
+                    onClick={() => { setActiveGame("rps"); showToast("✊ RPS battle on"); }}
+                  >
+                    ✊ RPS
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="games-panel-top-actions">
+                  <button type="button" className="ghost-btn small" onClick={() => setActiveGame(null)}>
+                    ← All Games
+                  </button>
                 </div>
 
-                <p className="mono">Last roll: You {lastRoll.player} · Bot {lastRoll.bot}</p>
-                <button type="button" className="solid-link action-btn" onClick={rollDice}>
-                  {isRolling ? "Rolling..." : "Roll Dice"}
-                </button>
-              </section>
-            )}
+                <div className="game-stage-active game-zone-stage glass">
+                  {activeGame === "dice" && (
+                    <article className="games-3d-card game-stage-card dice-neon-stage">
+                      <h4 className="dice-neon-title">🎲 Ludo Dice Battle</h4>
+                      <p className="dice-neon-subtitle">Roll and compete to reach the highest score!</p>
 
-            {activeGame === "slang" && (
-              <section className="game-panel">
-                <h3>🎮 Gen Z Slang Quiz</h3>
-                <div className="quiz-progress-wrap">
-                  <div className="quiz-progress-bar" style={{ width: `${quizProgress}%` }} />
-                </div>
-
-                {!quizDone ? (
-                  <>
-                    <p>{quizQuestion.q}</p>
-                    <div className="quiz-options">
-                      {quizQuestion.options.map((option, index) => (
-                        <button
-                          type="button"
-                          key={option}
-                          className={`quiz-option ${
-                            quizLocked
-                              ? index === quizQuestion.answer
-                                ? "correct"
-                                : index === selectedOption
-                                  ? "wrong"
-                                  : ""
-                              : ""
-                          }`}
-                          onClick={() => pickQuizOption(index)}
-                          disabled={quizLocked}
-                        >
-                          <span>{option}</span>
-                          {quizLocked && index === quizQuestion.answer && <b>✔</b>}
-                          {quizLocked && index === selectedOption && index !== quizQuestion.answer && <b>✖</b>}
-                        </button>
-                      ))}
-                    </div>
-
-                    {quizLocked && (
-                      <div className="quiz-explain">
-                        <strong>{lastAnswerCorrect ? "💡 Nice!" : "💡 Quick learn"}</strong>
-                        <p>{quizQuestion.explanation}</p>
+                      <div className="dice-neon-duel">
+                        <div className="dice-neon-player">
+                          <span className="dice-neon-tag you">PLAYER 1</span>
+                          <DicePips value={lastRoll.player} isRolling={isRolling} variant="you" />
+                        </div>
+                        <span className="dice-neon-vs">VS</span>
+                        <div className="dice-neon-player">
+                          <span className="dice-neon-tag bot">PLAYER 2</span>
+                          <DicePips value={lastRoll.bot} isRolling={isRolling} variant="bot" />
+                        </div>
                       </div>
-                    )}
 
-                    <p className="mono">Question {quizIndex + 1}/{slangQuestions.length}</p>
+                      <div className="dice-neon-score-grid">
+                        <div className="dice-neon-score you">
+                          <span>🏆</span>
+                          <p>Player 1 Score</p>
+                          <strong>{playerScore}</strong>
+                        </div>
+                        <div className="dice-neon-score bot">
+                          <span>🏆</span>
+                          <p>Player 2 Score</p>
+                          <strong>{botScore}</strong>
+                        </div>
+                      </div>
 
-                    <button type="button" className="solid-link action-btn" onClick={goNextQuestion} disabled={!quizLocked}>
-                      {quizIndex === slangQuestions.length - 1 ? "Finish Quiz" : "Next Question"}
-                    </button>
-                  </>
-                ) : (
-                  <div className="quiz-complete">
-                    <h4>Quiz Completed ✅</h4>
-                    <p>Your score: {quizScore}/{slangQuestions.length}</p>
-                    <p className="mono">{getQuizAssessment()}</p>
-                    <button type="button" className="solid-link action-btn" onClick={restartQuiz}>Restart Quiz</button>
-                  </div>
-                )}
-              </section>
-            )}
+                      <p className="dice-result-note">
+                        {lastRoll.player === lastRoll.bot 
+                          ? "Draw round — both rolled the same." 
+                          : lastRoll.player > lastRoll.bot 
+                            ? "You win this roll! 🎉" 
+                            : "LetzTalk wins this roll."}
+                      </p>
+                      <button type="button" className="solid-link action-btn room-ad-btn dice-roll-btn" onClick={rollDice} disabled={isRolling}>
+                        {isRolling ? "Rolling..." : "🎲 Roll Dice"}
+                      </button>
+                    </article>
+                  )}
 
-            {activeGame === "rps" && (
-              <section className="game-panel game-panel-rps">
-                <h3>👆 Rock Paper Scissors</h3>
+                  {activeGame === "rps" && (
+                    <article className="games-3d-card game-stage-card rps-neon-stage">
+                      <h4 className="rps-neon-title">✋ Rock Paper Scissors</h4>
 
-                <div className="rps-stage">
-                  <div className="rps-hand">{rpsEmoji[rpsPlayerChoice]}</div>
-                  <span className="rps-vs">VS</span>
-                  <div className="rps-hand">{rpsEmoji[rpsBotChoice]}</div>
+                      <div className="dice-neon-duel">
+                        <div className="dice-neon-player">
+                          <span className="dice-neon-tag you">PLAYER 1</span>
+                          <div className="rps-neon-cube">
+                            {rpsPlayerChoice === "rock" ? "✊" : rpsPlayerChoice === "paper" ? "✋" : "✌️"}
+                          </div>
+                        </div>
+                        <span className="dice-neon-vs">VS</span>
+                        <div className="dice-neon-player">
+                          <span className="dice-neon-tag bot">PLAYER 2</span>
+                          <div className="rps-neon-cube">
+                            {rpsBotChoice === "rock" ? "✊" : rpsBotChoice === "paper" ? "✋" : "✌️"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="dice-neon-score-grid">
+                        <div className="dice-neon-score you">
+                          <span>🏆</span>
+                          <p>Player 1 Wins</p>
+                          <strong>{rpsScore.player}</strong>
+                        </div>
+                        <div className="dice-neon-score bot">
+                          <span>🏆</span>
+                          <p>Player 2 Wins</p>
+                          <strong>{rpsScore.bot}</strong>
+                        </div>
+                      </div>
+
+                      <p className="dice-result-note">{rpsResult.text}</p>
+                      <div className="rps-neon-actions">
+                        <button type="button" className="rps-neon-btn rock" onClick={() => playRps("rock")}>✊</button>
+                        <button type="button" className="rps-neon-btn paper" onClick={() => playRps("paper")}>✋</button>
+                        <button type="button" className="rps-neon-btn scissors" onClick={() => playRps("scissors")}>✌️</button>
+                      </div>
+                    </article>
+                  )}
+
+                  {activeGame === "slang" && (
+                    <article className="games-3d-card game-stage-card quiz-neon-stage">
+                      <h4 className="rps-neon-title">🧠 Gen Z Slang</h4>
+                      
+                      <div className="quiz-progress-wrap">
+                        <div className="quiz-progress-bar" style={{ width: `${quizProgress}%` }} />
+                      </div>
+
+                      {!quizDone ? (
+                        <>
+                          <p className="quiz-mini-question">{quizQuestion.q}</p>
+                          <div className="quiz-mini-options">
+                            {quizQuestion.options.map((option, index) => (
+                              <button 
+                                key={option} 
+                                type="button" 
+                                className={`ghost-btn small ${quizLocked && index === quizQuestion.answer ? 'correct-glow' : ''}`}
+                                onClick={() => pickQuizOption(index)} 
+                                disabled={quizLocked}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {quizLocked && (
+                            <div className="quiz-explain">
+                              <strong>{lastAnswerCorrect ? "💡 Nice!" : "💡 Quick learn"}</strong>
+                              <p>{quizQuestion.explanation}</p>
+                            </div>
+                          )}
+
+                          <p className="dice-result-note">Question {quizIndex + 1}/{slangQuestions.length}</p>
+                          <button type="button" className="solid-link action-btn room-ad-btn" onClick={goNextQuestion} disabled={!quizLocked}>
+                            {quizIndex === slangQuestions.length - 1 ? "Finish Quiz" : "Next Question"}
+                          </button>
+                        </>
+                      ) : (
+                        <div className="quiz-complete">
+                          <h4>Quiz Completed ✅</h4>
+                          <p>Your score: {quizScore}/{slangQuestions.length}</p>
+                          <p className="dice-result-note">{getQuizAssessment()}</p>
+                          <button type="button" className="solid-link action-btn room-ad-btn" onClick={restartQuiz}>Restart Quiz</button>
+                        </div>
+                      )}
+                    </article>
+                  )}
                 </div>
-
-                <div className={`rps-result ${rpsResult.type}`}>
-                  {rpsResult.text}
-                </div>
-
-                <div className="rps-score">
-                  <span>You: {rpsScore.player}</span>
-                  <span>Bot: {rpsScore.bot}</span>
-                  <span>Draw: {rpsScore.draw}</span>
-                </div>
-
-                <div className="rps-actions">
-                  <button type="button" className="rps-btn rock" onClick={() => playRps("rock")}>✊ Rock</button>
-                  <button type="button" className="rps-btn paper" onClick={() => playRps("paper")}>✋ Paper</button>
-                  <button type="button" className="rps-btn scissors" onClick={() => playRps("scissors")}>✌️ Scissors</button>
-                </div>
-              </section>
+              </>
             )}
           </div>
-
-          <aside className="games-sidebar glass">
-            <div className="sidebar-toggles">
-              <button
-                type="button"
-                className={`sidebar-btn ${sidebarFeature === "call" ? "active" : ""}`}
-                onClick={() => setSidebarFeature(sidebarFeature === "call" ? null : "call")}
-                title="Open Voice Call"
-              >
-                🎤 Voice
-              </button>
-              <button
-                type="button"
-                className={`sidebar-btn ${sidebarFeature === "chat" ? "active" : ""}`}
-                onClick={() => setSidebarFeature(sidebarFeature === "chat" ? null : "chat")}
-                title="Open Text Chat"
-              >
-                💬 Chat
-              </button>
-            </div>
-
-            {sidebarFeature === "call" && (
-              <div className="sidebar-content">
-                <h4>Voice Call</h4>
-                <p>Connect with random strangers via video call.</p>
-                <Link to="/call" className="solid-link action-btn">
-                  Start Voice Call
-                </Link>
-              </div>
-            )}
-
-            {sidebarFeature === "chat" && (
-              <div className="sidebar-content">
-                <h4>Text Chat</h4>
-                <p>Anonymous text chat with anyone.</p>
-                <Link to="/message" className="solid-link action-btn">
-                  Go to Chat
-                </Link>
-              </div>
-            )}
-
-            {!sidebarFeature && (
-              <div className="sidebar-content">
-                <p className="mono">Click a button to access voice or text features.</p>
-              </div>
-            )}
-          </aside>
         </div>
 
         <div className="home-actions">
-          <Link to="/" className="ghost-link">Home</Link>
+          <Link to="/" className="ghost-link">← Back to Home</Link>
         </div>
       </div>
     </div>

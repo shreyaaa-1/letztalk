@@ -90,6 +90,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizFeedback, setQuizFeedback] = useState("Pick one option.");
   const [quizAnswered, setQuizAnswered] = useState(false);
+  const [pendingDiceRoll, setPendingDiceRoll] = useState(null);
+  const [waitingForPartnerDice, setWaitingForPartnerDice] = useState(false);
+  const [waitingForPartnerRps, setWaitingForPartnerRps] = useState(false);
 
   const remoteAudioRef = useRef(null);
   const socketRef = useRef(null);
@@ -270,7 +273,7 @@ const MatchPage = ({ directVoice = false } = {}) => {
     }, 2000);
   }, []);
 
-  const startSearch = useCallback((searchMessage = "Finding someone interesting…") => {
+  const startSearch = useCallback((searchMessage = "Matching you…") => {
     setError("");
     setMessage(searchMessage);
     setStatus("searching");
@@ -385,10 +388,74 @@ const MatchPage = ({ directVoice = false } = {}) => {
       setIsPartnerTyping(false);
     });
 
+    socket.on("game_dice_roll", ({ roll: partnerRoll }) => {
+      if (pendingDiceRoll !== null) {
+        // Both rolls received
+        const myRoll = pendingDiceRoll;
+        setGameState((prev) => ({
+          ...prev,
+          dice: { me: myRoll, stranger: partnerRoll },
+        }));
+        setInlineDiceScore((prev) => ({
+          me: prev.me + myRoll,
+          stranger: prev.stranger + partnerRoll,
+        }));
+
+        if (myRoll === partnerRoll) {
+          setDiceResult("Draw round — both rolled the same.");
+        } else if (myRoll > partnerRoll) {
+          setDiceResult("You win this roll! 🎉");
+        } else {
+          setDiceResult("Stranger wins this roll.");
+        }
+
+        setIsDiceRolling(false);
+        setPendingDiceRoll(null);
+        setWaitingForPartnerDice(false);
+      } else {
+        // Partner rolled first, store their roll
+        setPendingDiceRoll(partnerRoll);
+      }
+    });
+
+    socket.on("game_rps_move", ({ choice: partnerChoice }) => {
+      if (rpsMeChoice) {
+        // Both choices received
+        const myChoice = rpsMeChoice;
+        setRpsPartnerChoice(partnerChoice);
+
+        if (myChoice === partnerChoice) {
+          setRpsInlineResult("Draw round.");
+        } else {
+          const playerWins =
+            (myChoice === "rock" && partnerChoice === "scissors") ||
+            (myChoice === "paper" && partnerChoice === "rock") ||
+            (myChoice === "scissors" && partnerChoice === "paper");
+
+          if (playerWins) {
+            setRpsInlineScore((prev) => ({ ...prev, me: prev.me + 1 }));
+            setRpsInlineResult("You win this RPS round!");
+          } else {
+            setRpsInlineScore((prev) => ({ ...prev, partner: prev.partner + 1 }));
+            setRpsInlineResult("Partner wins this RPS round.");
+          }
+        }
+
+        setWaitingForPartnerRps(false);
+      } else {
+        // Partner chose first, store their choice
+        setRpsPartnerChoice(partnerChoice);
+      }
+    });
+
+    socket.on("game_quiz_answer", ({ optionIndex: partnerAnswer, isCorrect: partnerCorrect }) => {
+      setQuizFeedback((prev) => `${prev} | Partner: ${partnerCorrect ? "Correct ✅" : "Wrong ❌"}`);
+    });
+
     socket.on("room_state", ({ state, roomId: syncedRoomId, partnerId: syncedPartnerId }) => {
       if (state === "searching") {
         setStatus("searching");
-        setMessage("Finding someone…");
+        setMessage("Matching you…");
         return;
       }
 
@@ -520,13 +587,15 @@ const MatchPage = ({ directVoice = false } = {}) => {
   const skipPartner = () => {
     socketRef.current?.emit("skip");
     resetMatchState("Searching for a new partner...", "searching");
-    startSearch("Finding someone else…");
+    startSearch("Matching you…");
   };
 
   const cancelVoiceSearch = () => {
     socketRef.current?.emit("skip");
-    resetMatchState("Search canceled.", "idle");
-    navigate("/");
+    resetMatchState("Search canceled. Tap Match when ready.", "idle");
+    setActiveView("call");
+    setIsCallMinimized(false);
+    setIsChatSidebarOpen(false);
   };
 
   const endCall = () => {
@@ -537,67 +606,96 @@ const MatchPage = ({ directVoice = false } = {}) => {
   };
 
   const playInlineDice = () => {
-    if (isDiceRolling) {
+    if (isDiceRolling || !partnerId) {
       return;
     }
 
     setIsDiceRolling(true);
-    const randomValues = crypto.getRandomValues(new Uint32Array(2));
-    const me = (randomValues[0] % 6) + 1;
-    const stranger = (randomValues[1] % 6) + 1;
+    setWaitingForPartnerDice(true);
+    setDiceResult("Waiting for partner's roll...");
 
     window.setTimeout(() => {
-      setGameState((prev) => ({
-        ...prev,
-        dice: { me, stranger },
-      }));
-      setInlineDiceScore((prev) => ({
-        me: prev.me + me,
-        stranger: prev.stranger + stranger,
-      }));
+      const myRoll = (crypto.getRandomValues(new Uint32Array(1))[0] % 6) + 1;
+      
+      // Emit my roll to partner
+      socketRef.current?.emit("game_dice_roll", { to: partnerId, roll: myRoll });
+      
+      // Check if partner already rolled
+      if (pendingDiceRoll !== null) {
+        // Partner rolled first, complete the round
+        const partnerRoll = pendingDiceRoll;
+        setGameState((prev) => ({
+          ...prev,
+          dice: { me: myRoll, stranger: partnerRoll },
+        }));
+        setInlineDiceScore((prev) => ({
+          me: prev.me + myRoll,
+          stranger: prev.stranger + partnerRoll,
+        }));
 
-      if (me === stranger) {
-        setDiceResult("Draw round — both rolled the same.");
-      } else if (me > stranger) {
-        setDiceResult("You win this roll! 🎉");
+        if (myRoll === partnerRoll) {
+          setDiceResult("Draw round — both rolled the same.");
+        } else if (myRoll > partnerRoll) {
+          setDiceResult("You win this roll! 🎉");
+        } else {
+          setDiceResult("Stranger wins this roll.");
+        }
+
+        setIsDiceRolling(false);
+        setPendingDiceRoll(null);
+        setWaitingForPartnerDice(false);
       } else {
-        setDiceResult("Stranger wins this roll.");
+        // Store my roll and wait for partner
+        setPendingDiceRoll(myRoll);
       }
-
-      setIsDiceRolling(false);
     }, 700);
   };
 
   const playInlineRps = (choice) => {
-    const options = ["rock", "paper", "scissors"];
-    const randomValue = crypto.getRandomValues(new Uint32Array(1))[0];
-    const partnerChoice = options[randomValue % options.length];
+    if (!partnerId || waitingForPartnerRps) {
+      return;
+    }
 
     setRpsMeChoice(choice);
-    setRpsPartnerChoice(partnerChoice);
+    setWaitingForPartnerRps(true);
+    setRpsInlineResult("Waiting for partner's choice...");
 
-    if (choice === partnerChoice) {
-      setRpsInlineResult("Draw round.");
-      return;
+    // Emit my choice to partner
+    socketRef.current?.emit("game_rps_move", { to: partnerId, choice });
+
+    // Check if partner already chose
+    if (rpsPartnerChoice) {
+      const partnerChoice = rpsPartnerChoice;
+
+      if (choice === partnerChoice) {
+        setRpsInlineResult("Draw round.");
+      } else {
+        const playerWins =
+          (choice === "rock" && partnerChoice === "scissors") ||
+          (choice === "paper" && partnerChoice === "rock") ||
+          (choice === "scissors" && partnerChoice === "paper");
+
+        if (playerWins) {
+          setRpsInlineScore((prev) => ({ ...prev, me: prev.me + 1 }));
+          setRpsInlineResult("You win this RPS round!");
+        } else {
+          setRpsInlineScore((prev) => ({ ...prev, partner: prev.partner + 1 }));
+          setRpsInlineResult("Partner wins this RPS round.");
+        }
+      }
+
+      setWaitingForPartnerRps(false);
+      // Reset for next round
+      window.setTimeout(() => {
+        setRpsMeChoice(null);
+        setRpsPartnerChoice(null);
+        setRpsInlineResult("Choose rock, paper, or scissors.");
+      }, 2000);
     }
-
-    const playerWins =
-      (choice === "rock" && partnerChoice === "scissors") ||
-      (choice === "paper" && partnerChoice === "rock") ||
-      (choice === "scissors" && partnerChoice === "paper");
-
-    if (playerWins) {
-      setRpsInlineScore((prev) => ({ ...prev, me: prev.me + 1 }));
-      setRpsInlineResult("You win this RPS round!");
-      return;
-    }
-
-    setRpsInlineScore((prev) => ({ ...prev, partner: prev.partner + 1 }));
-    setRpsInlineResult("Player 2 wins this RPS round.");
   };
 
   const answerInlineQuiz = (optionIndex) => {
-    if (quizAnswered) {
+    if (quizAnswered || !partnerId) {
       return;
     }
 
@@ -606,6 +704,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
 
     setQuizAnswered(true);
     setQuizFeedback(isCorrect ? "Correct ✅" : `Wrong ❌ · Correct: ${current.options[current.answer]}`);
+
+    // Emit answer to partner
+    socketRef.current?.emit("game_quiz_answer", { to: partnerId, optionIndex, isCorrect });
   };
 
   const nextInlineQuiz = () => {
@@ -722,8 +823,8 @@ const MatchPage = ({ directVoice = false } = {}) => {
                 </button>
                 <p className="site-name">LETZTALK</p>
                 <h2 className="match-title">
-                  Connect with
-                  <span>Random Strangers</span>
+                  Meet Someone.
+                  <span>Say Something.</span>
                 </h2>
               </div>
               <div className="header-center-tabs glass">
@@ -810,16 +911,6 @@ const MatchPage = ({ directVoice = false } = {}) => {
 
                 <section className={`call-live-layout ${isChatSidebarOpen ? "chat-open" : ""} ${isChatMaxMode ? "chat-max" : ""}`}>
                   <div className={`call-live-main ${isChatMaxMode ? "hidden" : ""}`}>
-                    {status === "searching" && activeView !== "games" && !isMiniOnlyMode && (
-                      <section className="searching-inline-card glass" role="status" aria-live="polite">
-                        <div className="searching-spinner" aria-hidden="true" />
-                        <p>{message || "Finding stranger…"}</p>
-                        <button type="button" className="ghost-btn small search-cancel-tab" onClick={cancelVoiceSearch}>
-                          Cancel
-                        </button>
-                      </section>
-                    )}
-
                     {showConnectedToast && !isMiniOnlyMode && (
                       <section className="searching-inline-card connected-inline-card glass" role="status" aria-live="polite">
                         <p>✅ Connected to stranger</p>
@@ -832,6 +923,11 @@ const MatchPage = ({ directVoice = false } = {}) => {
 
                         <>
                             <div className="games-panel-top-actions">
+                              {selectedGame !== null && (
+                                <button type="button" className="ghost-btn small" onClick={() => setSelectedGame(null)}>
+                                  ← All Games
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 className="game-minimize-btn"
@@ -845,11 +941,6 @@ const MatchPage = ({ directVoice = false } = {}) => {
                               >
                                 −
                               </button>
-                              {selectedGame !== null && (
-                                <button type="button" className="ghost-btn small" onClick={() => setSelectedGame(null)}>
-                                  ← All Games
-                                </button>
-                              )}
                             </div>
 
                             {selectedGame === null ? (
@@ -998,7 +1089,7 @@ const MatchPage = ({ directVoice = false } = {}) => {
                         <div className="voice-panels-grid">
                         <div className="voice-panel-card glass">
                           <span className="panel-label">🎤 Me</span>
-                          <div className={`voice-placeholder ${isMuted ? "muted" : ""} ${localSpeaking ? "speaking" : ""} ${localStreamReady ? "online" : ""}`}>
+                          <div className={`voice-placeholder ${status === "searching" ? "deemphasized" : ""} ${isMuted ? "muted" : ""} ${localSpeaking && status === "connected" && Boolean(partnerId) ? "speaking speaking-local" : ""} ${localStreamReady ? "online" : ""}`}>
                             <div className="voice-placeholder-logo">
                               <img src="/letztalk.svg" alt="LetzTalk" />
                             </div>
@@ -1007,11 +1098,28 @@ const MatchPage = ({ directVoice = false } = {}) => {
                         </div>
                         <div className="voice-panel-card glass">
                           <span className="panel-label">👤 Stranger</span>
-                          <div className={`voice-placeholder ${remoteSpeaking ? "speaking" : ""} ${remoteStreamReady ? "online" : ""}`}>
+                          <div className={`voice-placeholder ${status === "searching" ? "matching" : ""} ${remoteSpeaking ? "speaking speaking-remote" : ""} ${remoteStreamReady ? "online" : ""}`}>
                             <div className="voice-placeholder-logo">
                               <img src="/letztalk.svg" alt="LetzTalk" />
                             </div>
-                            <p>{partnerId ? "Connected to stranger" : status === "searching" ? "Finding stranger..." : "Waiting for stranger"}</p>
+                            {status === "searching" ? (
+                              <>
+                                <div className="searching-spinner" aria-hidden="true" />
+                                <p>Matching you…</p>
+                                <button type="button" className="ghost-btn small search-cancel-tab" onClick={cancelVoiceSearch}>
+                                  Cancel
+                                </button>
+                              </>
+                            ) : !partnerId ? (
+                              <>
+                                <p>Waiting for stranger</p>
+                                <button type="button" className="solid-link action-btn search-cancel-tab" onClick={findMatch}>
+                                  🔍 Match
+                                </button>
+                              </>
+                            ) : (
+                              <p>Connected to stranger</p>
+                            )}
                           </div>
                         </div>
                         </div>
@@ -1021,9 +1129,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
                     {activeView === "call" && showControlDock && !isMiniOnlyMode && (
                       <div className="control-dock-wrap">
                         <section className="control-dock glass">
-                          <button type="button" className={`dock-btn ${isMuted ? "report-active" : ""}`} onClick={toggleMute} title="Mute" disabled={!localStreamReady}>
+                          <button type="button" className={`dock-btn ${isMuted ? "muted-active" : ""}`} onClick={toggleMute} title={isMuted ? "Unmute" : "Mute"} disabled={!localStreamReady}>
                             <span className="dock-icon">{isMuted ? "🔇" : "🎙️"}</span>
-                            <span className="dock-label">{isMuted ? "Mic Off" : "Mic On"}</span>
+                            <span className="dock-label">{isMuted ? "Unmute" : "Mute"}</span>
                           </button>
                           <button
                             type="button"
@@ -1058,10 +1166,6 @@ const MatchPage = ({ directVoice = false } = {}) => {
                   {isChatSidebarOpen && !isChatMinimized && (
                     <aside className="call-chat-sidebar glass chat-inline-panel">
                       <div className="call-chat-head-row">
-                        <div>
-                          <h3 className="call-chat-title">Text Chat</h3>
-                          <p className="call-chat-subtitle">If you can't talk, text here.</p>
-                        </div>
                         <button
                           type="button"
                           className="chat-minimize-btn"
@@ -1078,8 +1182,12 @@ const MatchPage = ({ directVoice = false } = {}) => {
                           }}
                           title="Minimize chat"
                         >
-                          −
+                          ←
                         </button>
+                        <div>
+                          <h3 className="call-chat-title">Text Chat</h3>
+                          <p className="call-chat-subtitle">If you can't talk, text here.</p>
+                        </div>
                       </div>
 
                       <div className="call-chat-list" ref={chatScrollRef}>

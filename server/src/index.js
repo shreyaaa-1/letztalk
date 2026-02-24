@@ -212,6 +212,43 @@ io.on("connection", (socket) => {
     });
 
     // ===============================
+    // Game events relay
+    // ===============================
+    socket.on("game_dice_roll", ({ to, roll }) => {
+      if (!to || typeof roll !== "number") {
+        return;
+      }
+
+      io.to(to).emit("game_dice_roll", {
+        from: socket.id,
+        roll,
+      });
+    });
+
+    socket.on("game_rps_move", ({ to, choice }) => {
+      if (!to || !choice) {
+        return;
+      }
+
+      io.to(to).emit("game_rps_move", {
+        from: socket.id,
+        choice,
+      });
+    });
+
+    socket.on("game_quiz_answer", ({ to, optionIndex, isCorrect }) => {
+      if (!to || typeof optionIndex !== "number") {
+        return;
+      }
+
+      io.to(to).emit("game_quiz_answer", {
+        from: socket.id,
+        optionIndex,
+        isCorrect,
+      });
+    });
+
+    // ===============================
     // Rooms: create/join/leave/message
     // ===============================
     socket.on("create_room", ({ roomName, displayName }) => {

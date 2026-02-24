@@ -18,6 +18,7 @@ const MessagePage = () => {
   const [messages, setMessages] = useState(
     initialPartner ? [{ id: "from-call", fromSelf: false, text: "Connected from voice call. Start chatting 💬" }] : [],
   );
+  const [chatMode, setChatMode] = useState(initialPartner ? "real" : null); // null (show modal), 'bot', or 'real'
 
   useEffect(() => {
     const socket = io(SOCKET_URL, { transports: ["websocket"] });
@@ -103,23 +104,69 @@ const MessagePage = () => {
     setError("");
   };
 
+  const handleChatWithBot = () => {
+    setChatMode("bot");
+    setMessages([{ id: "bot-intro", fromSelf: false, text: "🤖 LetzTalk: Hi! I'm LetzTalk. Type anything and I'll echo it back!" }]);
+  };
+
+  const handleFindRandom = () => {
+    setChatMode("real");
+    findNewPeople();
+  };
+
+  const sendMessageWithBotCheck = () => {
+    const text = draft.trim();
+    if (!text) {
+      return;
+    }
+
+    if (chatMode === "bot") {
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), fromSelf: true, text },
+        { id: Date.now() + 1, fromSelf: false, text: `🤖 LetzTalk: You said "${text}"` },
+      ]);
+      setDraft("");
+      return;
+    }
+
+    sendMessage();
+  };
+
   return (
     <div className="center-screen">
-      <div className="feature-shell glass light-chat-theme">
-        <header className="feature-header">
-          <div>
-            <h1>💬 Text Chat</h1>
-            <p>Connect and chat with strangers instantly</p>
+      {chatMode === null && (
+        <div className="access-modal-overlay">
+          <div className="access-modal glass">
+            <h2>💬 Choose Chat Mode</h2>
+            <p>How would you like to chat?</p>
+            <div className="access-modal-actions">
+              <button type="button" className="solid-link action-btn" onClick={handleChatWithBot}>
+                🤖 Chat with LetzTalk
+              </button>
+              <button type="button" className="ghost-link action-btn" onClick={handleFindRandom}>
+                🌐 Find Random Person
+              </button>
+            </div>
           </div>
-          <div className="header-actions">
+        </div>
+      )}
+
+      <div className="feature-shell glass light-chat-theme">
+        <header className="feature-header message-header">
+          <button type="button" className="ghost-btn small message-back-btn" onClick={onBack} aria-label="Back">
+            ←
+          </button>
+          <div className="message-header-copy">
+            <h1>💬 Text Chat</h1>
+            <p>Share your thoughts with LetzTalk.</p>
+          </div>
+          <div className="header-actions message-header-actions">
             {!isLoggedInUser && (
               <Link className="ghost-link small-link" to="/auth">
                 Login / Register
               </Link>
             )}
-            <button type="button" className="ghost-btn small" onClick={onBack}>
-              Back
-            </button>
           </div>
         </header>
 
@@ -143,13 +190,13 @@ const MessagePage = () => {
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
-                      sendMessage();
+                      sendMessageWithBotCheck();
                     }
                   }}
-                  placeholder={partnerId ? "Type a message..." : "Find someone first to chat"}
-                  disabled={!partnerId}
+                  placeholder={chatMode === "bot" ? "Type a message to LetzTalk..." : partnerId ? "Type a message..." : "Find someone first to chat"}
+                  disabled={chatMode !== "bot" && !partnerId}
                 />
-                <button type="button" className="solid-link action-btn" onClick={sendMessage} disabled={!partnerId}>
+                <button type="button" className="solid-link action-btn" onClick={sendMessageWithBotCheck} disabled={chatMode !== "bot" && !partnerId}>
                   Send
                 </button>
               </div>
@@ -157,16 +204,24 @@ const MessagePage = () => {
 
             {error && <p className="form-error">{error}</p>}
 
-            <div className="home-actions">
-              <button type="button" className="solid-link action-btn" onClick={findNewPeople}>
-                🔍 Find New People
-              </button>
-              {partnerId && (
-                <button type="button" className="ghost-link action-btn" onClick={skipPartner}>
-                  Skip Current
+            {chatMode === "bot" ? (
+              <div className="home-actions message-bot-actions">
+                <button type="button" className="solid-link action-btn" onClick={handleFindRandom}>
+                  🌐 Chat with Stranger
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="home-actions">
+                <button type="button" className="solid-link action-btn" onClick={findNewPeople}>
+                  🔍 Find New People
+                </button>
+                {partnerId && (
+                  <button type="button" className="ghost-link action-btn" onClick={skipPartner}>
+                    Skip Current
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

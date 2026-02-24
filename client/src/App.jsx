@@ -3,6 +3,7 @@ import AuthPage from "./pages/AuthPage";
 import BlockPage from "./pages/BlockPage";
 import CallPage from "./pages/CallPage";
 import GamesPage from "./pages/GamesPage";
+import GuestFeaturesPage from "./pages/GuestFeaturesPage";
 import HomePage from "./pages/HomePage";
 import MatchPage from "./pages/MatchPage";
 import MessagePage from "./pages/MessagePage";
@@ -13,6 +14,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/guest-features" element={<GuestFeaturesPage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/call" element={<CallPage />} />
       <Route path="/message" element={<MessagePage />} />

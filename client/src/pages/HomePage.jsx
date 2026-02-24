@@ -9,6 +9,7 @@ const homeCards = [
     subtitle: "Find random strangers and talk instantly.",
     emoji: "🎤",
     to: "/call?feature=voice",
+    guestAccess: true,
   },
   {
     id: "chat",
@@ -16,6 +17,7 @@ const homeCards = [
     subtitle: "Chat if you prefer typing over speaking.",
     emoji: "💬",
     to: "/message",
+    guestAccess: true,
   },
   {
     id: "games",
@@ -23,20 +25,25 @@ const homeCards = [
     subtitle: "Break the ice with dice, quiz, and RPS.",
     emoji: "🎮",
     to: "/games",
+    guestAccess: true,
   },
   {
     id: "rooms",
     title: "Rooms",
     subtitle: "Create private rooms for your own circle.",
-    emoji: "🏠",
+    emoji: "🚪",
     to: "/rooms",
+    guestAccess: false,
   },
 ];
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { continueAsGuest } = useAuth();
+  const { user, continueAsGuest } = useAuth();
   const [loadingGuest, setLoadingGuest] = useState(false);
+
+  const isGuest = user && (!user.username || user.username === "Guest");
+  const visibleCards = isGuest ? homeCards.filter((c) => c.guestAccess) : homeCards;
 
   const onStartGuest = async () => {
     if (loadingGuest) {
@@ -55,12 +62,7 @@ const HomePage = () => {
       window.setTimeout(resolve, 850);
     });
 
-    navigate("/call?feature=voice", {
-      state: {
-        fromHome: true,
-        notice: "Finding someone interesting…",
-      },
-    });
+    navigate("/guest-features");
 
     setLoadingGuest(false);
   };
@@ -102,15 +104,25 @@ const HomePage = () => {
           )}
         </section>
 
-        <section className="home-v2-cards-section" aria-label="Feature cards">
+        <section className={`home-v2-cards-section ${isGuest ? 'static-grid' : ''}`} aria-label="Feature cards">
           <div className="home-v2-cards-track">
-            {[...homeCards, ...homeCards].map((card, index) => (
-              <Link key={`${card.id}-${index}`} to={card.to} className="home-v2-card">
-                <span className="home-v2-card-icon" aria-hidden="true">{card.emoji}</span>
-                <h3>{card.title}</h3>
-                <p>{card.subtitle}</p>
-              </Link>
-            ))}
+            {isGuest ? (
+              visibleCards.map((card) => (
+                <Link key={card.id} to={card.to} className="home-v2-card">
+                  <span className="home-v2-card-icon" aria-hidden="true">{card.emoji}</span>
+                  <h3>{card.title}</h3>
+                  <p>{card.subtitle}</p>
+                </Link>
+              ))
+            ) : (
+              [...visibleCards, ...visibleCards].map((card, index) => (
+                <Link key={`${card.id}-${index}`} to={card.to} className="home-v2-card">
+                  <span className="home-v2-card-icon" aria-hidden="true">{card.emoji}</span>
+                  <h3>{card.title}</h3>
+                  <p>{card.subtitle}</p>
+                </Link>
+              ))
+            )}
           </div>
         </section>
       </div>
