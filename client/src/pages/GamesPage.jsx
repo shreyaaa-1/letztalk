@@ -225,7 +225,6 @@ const GamesPage = () => {
 
         <header className="feature-header">
           <div>
-            <h1>Games Zone</h1>
             <p>Play mini games: Ludo Dice, Gen Z Slang Quiz, and Rock Paper Scissors.</p>
           </div>
           <div className="header-actions">

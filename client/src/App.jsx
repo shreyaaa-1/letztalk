@@ -7,6 +7,7 @@ import HomePage from "./pages/HomePage";
 import MatchPage from "./pages/MatchPage";
 import MessagePage from "./pages/MessagePage";
 import RoomsPage from "./pages/RoomsPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -16,7 +17,14 @@ function App() {
       <Route path="/call" element={<CallPage />} />
       <Route path="/message" element={<MessagePage />} />
       <Route path="/games" element={<GamesPage />} />
-      <Route path="/rooms" element={<RoomsPage />} />
+      <Route
+        path="/rooms"
+        element={(
+          <ProtectedRoute>
+            <RoomsPage />
+          </ProtectedRoute>
+        )}
+      />
       <Route path="/match" element={<MatchPage />} />
       <Route path="/block" element={<BlockPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

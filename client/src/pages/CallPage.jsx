@@ -1,7 +1,7 @@
 import MatchPage from "./MatchPage";
 
 const CallPage = () => {
-  return <MatchPage defaultFeature="voice" />;
+  return <MatchPage directVoice />;
 };
 
 export default CallPage;

@@ -99,6 +99,7 @@ io.on("connection", (socket) => {
   // ===============================
   socket.on("find_match", () => {
     console.log("🔎 Finding match for:", socket.id);
+    socket.emit("room_state", { state: "searching" });
 
     addToQueue(socket.id);
 
@@ -112,6 +113,8 @@ io.on("connection", (socket) => {
 
       io.to(user1).emit("matched", { roomId, partnerId: user2 });
       io.to(user2).emit("matched", { roomId, partnerId: user1 });
+      io.to(user1).emit("room_state", { state: "connected", roomId, partnerId: user2 });
+      io.to(user2).emit("room_state", { state: "connected", roomId, partnerId: user1 });
 
       console.log("✅ Match created:", roomId);
     }
@@ -126,8 +129,11 @@ io.on("connection", (socket) => {
     const partnerId = findPartner(socket.id);
     removeRoomByUser(socket.id);
 
+    socket.emit("room_state", { state: "ended", reason: "self_skipped" });
+
     if (partnerId) {
       io.to(partnerId).emit("partner_skipped");
+      io.to(partnerId).emit("room_state", { state: "ended", reason: "partner_skipped" });
     }
 
     console.log("⏭️ User skipped:", socket.id);
@@ -169,6 +175,8 @@ io.on("connection", (socket) => {
     // ===============================
     socket.on("call_end", ({ to }) => {
       io.to(to).emit("call_end");
+      io.to(to).emit("room_state", { state: "ended", reason: "partner_ended" });
+      socket.emit("room_state", { state: "ended", reason: "self_ended" });
     });
 
     // ===============================
@@ -185,6 +193,22 @@ io.on("connection", (socket) => {
         text: safeText,
         sentAt: Date.now(),
       });
+    });
+
+    socket.on("chat_typing", ({ to }) => {
+      if (!to) {
+        return;
+      }
+
+      io.to(to).emit("chat_typing", { from: socket.id });
+    });
+
+    socket.on("chat_stop_typing", ({ to }) => {
+      if (!to) {
+        return;
+      }
+
+      io.to(to).emit("chat_stop_typing", { from: socket.id });
     });
 
     // ===============================
@@ -283,6 +307,7 @@ io.on("connection", (socket) => {
 
     if (partnerId) {
       io.to(partnerId).emit("partner_disconnected");
+      io.to(partnerId).emit("room_state", { state: "ended", reason: "partner_disconnected" });
     }
   });
 });
