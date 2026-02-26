@@ -106,6 +106,18 @@ const MessagePage = () => {
     setError("");
   };
 
+  const liveStatusText = status === "searching"
+    ? "🔍 Finding a new person..."
+    : status === "matched"
+      ? "✅ Connected — start chatting now."
+      : "💬 Tap Find New People to start.";
+
+  const liveStatusTone = status === "searching"
+    ? "finding"
+    : status === "matched"
+      ? "connected"
+      : "idle";
+
   return (
     <div className="center-screen message-page-screen">
       <div className="feature-shell glass message-purple-shell">
@@ -115,18 +127,12 @@ const MessagePage = () => {
           </button>
           <div className="message-header-copy">
             <h1>💬 Text Chat</h1>
-            <p>Connect instantly and chat in a calm, centered space.</p>
+            <p className={`message-live-status ${liveStatusTone}`}>{liveStatusText}</p>
           </div>
         </header>
 
         <div className="message-main-row">
           <div className="message-main-area">
-            <section className="message-feature-strip" aria-label="Chat highlights">
-              <div className="message-feature-chip">⚡ Fast matching</div>
-              <div className="message-feature-chip">🔒 Private chat</div>
-              <div className="message-feature-chip">💜 Friendly UI</div>
-            </section>
-
             <section className="messages-box glass">
               <div className="messages-list">
                 {messages.length === 0 && (

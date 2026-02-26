@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const slangQuestions = [
   {
@@ -222,23 +222,20 @@ const GamesPage = () => {
     showToast("🤖 LetzTalk wins this round", "error");
   };
 
+  const selectedTab = activeGame || "dice";
+
   return (
-    <div className="center-screen">
+    <div className="center-screen games-page-screen">
       <div className="feature-shell refresh-shell glass games-zone-embed">
         {toast && <div className={`game-toast ${toast.type}`}>{toast.text}</div>}
         <div className="games-zone-glow" aria-hidden="true" />
 
-        <header className="feature-header">
-          <div>
-            <button type="button" className="ghost-btn small back-left-btn back-icon-only" onClick={onBack} aria-label="Back">
-              ←
-            </button>
-            <p>Play mini games: Ludo Dice, Gen Z Slang Quiz, and Rock Paper Scissors.</p>
-          </div>
-          <div className="header-actions">
-            <Link className="ghost-link small-link" to="/games">Games</Link>
-            <Link className="ghost-link small-link" to="/message">Text Chat</Link>
-          </div>
+        <header className="feature-header games-zone-topbar">
+          <button type="button" className="ghost-link games-zone-back-link" onClick={onBack} aria-label="Back">
+            ← Back
+          </button>
+          <h2 className="games-zone-kicker">GAMES ZONE</h2>
+          <div className="games-zone-top-spacer" aria-hidden="true" />
         </header>
 
         <div className="games-main-row">
@@ -255,21 +252,21 @@ const GamesPage = () => {
                 <div className="games-selector-row games-zone-tabs">
                   <button
                     type="button"
-                    className="game-chip game-zone-chip"
+                    className={`game-chip game-zone-chip ${selectedTab === "dice" ? "active" : ""}`}
                     onClick={() => { setActiveGame("dice"); showToast("🎲 Dice ready"); }}
                   >
                     🎲 LUDO DICE
                   </button>
                   <button
                     type="button"
-                    className="game-chip game-zone-chip"
+                    className={`game-chip game-zone-chip ${selectedTab === "slang" ? "active" : ""}`}
                     onClick={() => { setActiveGame("slang"); showToast("🧠 Quiz started"); }}
                   >
                     🧠 GEN Z SLANG
                   </button>
                   <button
                     type="button"
-                    className="game-chip game-zone-chip"
+                    className={`game-chip game-zone-chip ${selectedTab === "rps" ? "active" : ""}`}
                     onClick={() => { setActiveGame("rps"); showToast("✊ RPS battle on"); }}
                   >
                     ✊ RPS
@@ -420,10 +417,6 @@ const GamesPage = () => {
               </>
             )}
           </div>
-        </div>
-
-        <div className="home-actions">
-          <Link to="/" className="ghost-link">← Back to Home</Link>
         </div>
       </div>
     </div>
