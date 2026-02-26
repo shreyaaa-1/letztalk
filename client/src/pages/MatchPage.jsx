@@ -50,7 +50,7 @@ const DicePips = ({ value, isRolling, variant }) => {
 };
 
 const MatchPage = ({ directVoice = false } = {}) => {
-  const { user, isLoggedInUser, continueAsGuest, logout } = useAuth();
+  const { isLoggedInUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const shouldDirectCallFlow = directVoice || Boolean(location.state?.fromHome);
@@ -67,10 +67,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
   const [remoteStreamReady, setRemoteStreamReady] = useState(false);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
-  const [activeView, setActiveView] = useState("call");
   const [isCallMinimized, setIsCallMinimized] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
-  const [isGameMinimized, setIsGameMinimized] = useState(false);
+  const [isGameSidebarOpen, setIsGameSidebarOpen] = useState(false);
   const [isDiceRolling, setIsDiceRolling] = useState(false);
   const [diceResult, setDiceResult] = useState("Roll to see who wins this round.");
   const [gameState, setGameState] = useState({
@@ -90,7 +89,6 @@ const MatchPage = ({ directVoice = false } = {}) => {
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizFeedback, setQuizFeedback] = useState("Pick one option.");
   const [quizAnswered, setQuizAnswered] = useState(false);
-  const [pendingDiceRoll, setPendingDiceRoll] = useState(null);
   const [waitingForPartnerDice, setWaitingForPartnerDice] = useState(false);
   const [waitingForPartnerRps, setWaitingForPartnerRps] = useState(false);
 
@@ -105,6 +103,12 @@ const MatchPage = ({ directVoice = false } = {}) => {
   const chatScrollRef = useRef(null);
   const typingStopTimerRef = useRef(null);
   const connectedToastTimerRef = useRef(null);
+  const diceRollResolveTimeoutRef = useRef(null);
+  const diceMyRollRef = useRef(null);
+  const dicePartnerRollRef = useRef(null);
+  const rpsResolveTimeoutRef = useRef(null);
+  const rpsMyChoiceRef = useRef(null);
+  const rpsPartnerChoiceRef = useRef(null);
 
   const appendMessage = useCallback((nextMessage) => {
     setChatMessages((prev) => [...prev, nextMessage]);
@@ -254,10 +258,32 @@ const MatchPage = ({ directVoice = false } = {}) => {
     setIsCallMinimized(false);
     setIsChatSidebarOpen(false);
     setIsChatMinimized(false);
-    setIsGameMinimized(false);
+    setIsGameSidebarOpen(false);
     setSelectedGame(null);
     setShowConnectedToast(false);
     setShowReportPanel(false);
+    setIsDiceRolling(false);
+    setWaitingForPartnerDice(false);
+    setDiceResult("Roll to see who wins this round.");
+    setRpsMeChoice(null);
+    setRpsPartnerChoice(null);
+    setWaitingForPartnerRps(false);
+    setRpsInlineResult("Choose rock, paper, or scissors.");
+
+    if (diceRollResolveTimeoutRef.current) {
+      window.clearTimeout(diceRollResolveTimeoutRef.current);
+      diceRollResolveTimeoutRef.current = null;
+    }
+
+    if (rpsResolveTimeoutRef.current) {
+      window.clearTimeout(rpsResolveTimeoutRef.current);
+      rpsResolveTimeoutRef.current = null;
+    }
+
+    diceMyRollRef.current = null;
+    dicePartnerRollRef.current = null;
+    rpsMyChoiceRef.current = null;
+    rpsPartnerChoiceRef.current = null;
     closePeer();
   }, [closePeer]);
 
@@ -273,6 +299,74 @@ const MatchPage = ({ directVoice = false } = {}) => {
     }, 2000);
   }, []);
 
+  const resolveDiceRound = useCallback((myRoll, partnerRoll) => {
+    setGameState((prev) => ({
+      ...prev,
+      dice: { me: myRoll, stranger: partnerRoll },
+    }));
+
+    setInlineDiceScore((prev) => ({
+      me: prev.me + myRoll,
+      stranger: prev.stranger + partnerRoll,
+    }));
+
+    if (myRoll === partnerRoll) {
+      setDiceResult("Draw round — both rolled the same.");
+    } else if (myRoll > partnerRoll) {
+      setDiceResult("You win this roll! 🎉");
+    } else {
+      setDiceResult("Partner wins this roll.");
+    }
+
+    setIsDiceRolling(false);
+    setWaitingForPartnerDice(false);
+
+    if (diceRollResolveTimeoutRef.current) {
+      window.clearTimeout(diceRollResolveTimeoutRef.current);
+      diceRollResolveTimeoutRef.current = null;
+    }
+
+    diceMyRollRef.current = null;
+    dicePartnerRollRef.current = null;
+  }, []);
+
+  const resolveRpsRound = useCallback((myChoice, partnerChoice) => {
+    setRpsMeChoice(myChoice);
+    setRpsPartnerChoice(partnerChoice);
+
+    if (myChoice === partnerChoice) {
+      setRpsInlineResult("Draw round.");
+    } else {
+      const playerWins =
+        (myChoice === "rock" && partnerChoice === "scissors") ||
+        (myChoice === "paper" && partnerChoice === "rock") ||
+        (myChoice === "scissors" && partnerChoice === "paper");
+
+      if (playerWins) {
+        setRpsInlineScore((prev) => ({ ...prev, me: prev.me + 1 }));
+        setRpsInlineResult("You win this RPS round!");
+      } else {
+        setRpsInlineScore((prev) => ({ ...prev, partner: prev.partner + 1 }));
+        setRpsInlineResult("Partner wins this RPS round.");
+      }
+    }
+
+    setWaitingForPartnerRps(false);
+
+    if (rpsResolveTimeoutRef.current) {
+      window.clearTimeout(rpsResolveTimeoutRef.current);
+      rpsResolveTimeoutRef.current = null;
+    }
+
+    window.setTimeout(() => {
+      setRpsMeChoice(null);
+      setRpsPartnerChoice(null);
+      setRpsInlineResult("Choose rock, paper, or scissors.");
+      rpsMyChoiceRef.current = null;
+      rpsPartnerChoiceRef.current = null;
+    }, 1600);
+  }, []);
+
   const startSearch = useCallback((searchMessage = "Matching you…") => {
     setError("");
     setMessage(searchMessage);
@@ -285,9 +379,24 @@ const MatchPage = ({ directVoice = false } = {}) => {
   }, [ensureLocalMedia]);
 
   useEffect(() => {
-    const socket = io(SOCKET_URL, {
-      transports: ["websocket"],
-    });
+    let socket;
+
+    try {
+      socket = io(SOCKET_URL, {
+        transports: ["websocket"],
+      });
+    } catch {
+      try {
+        socket = io(window.location.origin, {
+          transports: ["websocket"],
+        });
+      } catch {
+        setStatus("ended");
+        setMessage("Connection unavailable right now.");
+        setError("Live connection could not start. Please refresh and try again.");
+        return undefined;
+      }
+    }
 
     socketRef.current = socket;
 
@@ -308,9 +417,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
       setMessage("Connected to stranger ✨");
       setError("");
       setChatMessages([{ id: `system-${Date.now()}`, type: "system", text: "Partner connected. Say hi 👋", sentAt: Date.now() }]);
-      setActiveView("call");
       setIsCallMinimized(false);
       setIsChatSidebarOpen(false);
+      setIsGameSidebarOpen(false);
       setShowReportPanel(false);
       setIsPartnerTyping(false);
       triggerConnectedToast();
@@ -389,62 +498,26 @@ const MatchPage = ({ directVoice = false } = {}) => {
     });
 
     socket.on("game_dice_roll", ({ roll: partnerRoll }) => {
-      if (pendingDiceRoll !== null) {
-        // Both rolls received
-        const myRoll = pendingDiceRoll;
-        setGameState((prev) => ({
-          ...prev,
-          dice: { me: myRoll, stranger: partnerRoll },
-        }));
-        setInlineDiceScore((prev) => ({
-          me: prev.me + myRoll,
-          stranger: prev.stranger + partnerRoll,
-        }));
+      if (typeof partnerRoll !== "number") {
+        return;
+      }
 
-        if (myRoll === partnerRoll) {
-          setDiceResult("Draw round — both rolled the same.");
-        } else if (myRoll > partnerRoll) {
-          setDiceResult("You win this roll! 🎉");
-        } else {
-          setDiceResult("Stranger wins this roll.");
-        }
+      dicePartnerRollRef.current = partnerRoll;
 
-        setIsDiceRolling(false);
-        setPendingDiceRoll(null);
-        setWaitingForPartnerDice(false);
-      } else {
-        // Partner rolled first, store their roll
-        setPendingDiceRoll(partnerRoll);
+      if (typeof diceMyRollRef.current === "number") {
+        resolveDiceRound(diceMyRollRef.current, partnerRoll);
       }
     });
 
     socket.on("game_rps_move", ({ choice: partnerChoice }) => {
-      if (rpsMeChoice) {
-        // Both choices received
-        const myChoice = rpsMeChoice;
-        setRpsPartnerChoice(partnerChoice);
+      if (!partnerChoice) {
+        return;
+      }
 
-        if (myChoice === partnerChoice) {
-          setRpsInlineResult("Draw round.");
-        } else {
-          const playerWins =
-            (myChoice === "rock" && partnerChoice === "scissors") ||
-            (myChoice === "paper" && partnerChoice === "rock") ||
-            (myChoice === "scissors" && partnerChoice === "paper");
+      rpsPartnerChoiceRef.current = partnerChoice;
 
-          if (playerWins) {
-            setRpsInlineScore((prev) => ({ ...prev, me: prev.me + 1 }));
-            setRpsInlineResult("You win this RPS round!");
-          } else {
-            setRpsInlineScore((prev) => ({ ...prev, partner: prev.partner + 1 }));
-            setRpsInlineResult("Partner wins this RPS round.");
-          }
-        }
-
-        setWaitingForPartnerRps(false);
-      } else {
-        // Partner chose first, store their choice
-        setRpsPartnerChoice(partnerChoice);
+      if (rpsMyChoiceRef.current) {
+        resolveRpsRound(rpsMyChoiceRef.current, partnerChoice);
       }
     });
 
@@ -510,6 +583,16 @@ const MatchPage = ({ directVoice = false } = {}) => {
         window.clearTimeout(connectedToastTimerRef.current);
       }
 
+      if (diceRollResolveTimeoutRef.current) {
+        window.clearTimeout(diceRollResolveTimeoutRef.current);
+        diceRollResolveTimeoutRef.current = null;
+      }
+
+      if (rpsResolveTimeoutRef.current) {
+        window.clearTimeout(rpsResolveTimeoutRef.current);
+        rpsResolveTimeoutRef.current = null;
+      }
+
       if (localSpeakingCleanupRef.current) {
         localSpeakingCleanupRef.current();
         localSpeakingCleanupRef.current = null;
@@ -525,7 +608,7 @@ const MatchPage = ({ directVoice = false } = {}) => {
       setLocalSpeaking(false);
       setRemoteSpeaking(false);
     };
-  }, [appendMessage, appendSystemMessage, closePeer, createPeer, resetMatchState, shouldDirectCallFlow, startSearch, triggerConnectedToast]);
+  }, [appendMessage, appendSystemMessage, closePeer, createPeer, resetMatchState, resolveDiceRound, resolveRpsRound, shouldDirectCallFlow, startSearch, triggerConnectedToast]);
 
   const findMatch = () => {
     if (status === "searching") {
@@ -559,16 +642,19 @@ const MatchPage = ({ directVoice = false } = {}) => {
   };
 
   const onBack = () => {
-    if (shouldDirectCallFlow) {
-      navigate("/");
-      return;
-    }
-
     if (window.history.length > 1) {
       navigate(-1);
       return;
     }
     navigate("/");
+  };
+
+  const goToVoiceCall = () => {
+    navigate("/call", {
+      state: {
+        fromHome: true,
+      },
+    });
   };
 
   const toggleMute = () => {
@@ -593,9 +679,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
   const cancelVoiceSearch = () => {
     socketRef.current?.emit("skip");
     resetMatchState("Search canceled. Tap Match when ready.", "idle");
-    setActiveView("call");
     setIsCallMinimized(false);
     setIsChatSidebarOpen(false);
+    setIsGameSidebarOpen(false);
   };
 
   const endCall = () => {
@@ -606,96 +692,90 @@ const MatchPage = ({ directVoice = false } = {}) => {
   };
 
   const playInlineDice = () => {
-    if (isDiceRolling || !partnerId) {
+    if (!partnerId) {
+      setDiceResult("Find someone first to play Dice.");
       return;
     }
 
+    if (isDiceRolling || waitingForPartnerDice) {
+      return;
+    }
+
+    const hasCrypto = typeof window !== "undefined" && window.crypto?.getRandomValues;
+    const myRoll = hasCrypto ? (window.crypto.getRandomValues(new Uint32Array(1))[0] % 6) + 1 : Math.floor(Math.random() * 6) + 1;
+
+    diceMyRollRef.current = myRoll;
     setIsDiceRolling(true);
     setWaitingForPartnerDice(true);
     setDiceResult("Waiting for partner's roll...");
 
     window.setTimeout(() => {
-      const myRoll = (crypto.getRandomValues(new Uint32Array(1))[0] % 6) + 1;
-      
-      // Emit my roll to partner
       socketRef.current?.emit("game_dice_roll", { to: partnerId, roll: myRoll });
-      
-      // Check if partner already rolled
-      if (pendingDiceRoll !== null) {
-        // Partner rolled first, complete the round
-        const partnerRoll = pendingDiceRoll;
-        setGameState((prev) => ({
-          ...prev,
-          dice: { me: myRoll, stranger: partnerRoll },
-        }));
-        setInlineDiceScore((prev) => ({
-          me: prev.me + myRoll,
-          stranger: prev.stranger + partnerRoll,
-        }));
 
-        if (myRoll === partnerRoll) {
-          setDiceResult("Draw round — both rolled the same.");
-        } else if (myRoll > partnerRoll) {
-          setDiceResult("You win this roll! 🎉");
-        } else {
-          setDiceResult("Stranger wins this roll.");
-        }
-
-        setIsDiceRolling(false);
-        setPendingDiceRoll(null);
-        setWaitingForPartnerDice(false);
-      } else {
-        // Store my roll and wait for partner
-        setPendingDiceRoll(myRoll);
+      if (typeof dicePartnerRollRef.current === "number") {
+        resolveDiceRound(myRoll, dicePartnerRollRef.current);
+        return;
       }
-    }, 700);
+
+      setIsDiceRolling(false);
+
+      if (diceRollResolveTimeoutRef.current) {
+        window.clearTimeout(diceRollResolveTimeoutRef.current);
+      }
+
+      diceRollResolveTimeoutRef.current = window.setTimeout(() => {
+        if (diceMyRollRef.current === myRoll) {
+          diceMyRollRef.current = null;
+          setWaitingForPartnerDice(false);
+          setDiceResult("Partner did not roll yet. Tap Roll Dice again.");
+        }
+      }, 7000);
+    }, 650);
   };
 
   const playInlineRps = (choice) => {
-    if (!partnerId || waitingForPartnerRps) {
+    if (!partnerId) {
+      setRpsInlineResult("Find someone first to play Rock Paper Scissors.");
       return;
     }
 
+    if (waitingForPartnerRps) {
+      return;
+    }
+
+    rpsMyChoiceRef.current = choice;
     setRpsMeChoice(choice);
     setWaitingForPartnerRps(true);
     setRpsInlineResult("Waiting for partner's choice...");
 
-    // Emit my choice to partner
     socketRef.current?.emit("game_rps_move", { to: partnerId, choice });
 
-    // Check if partner already chose
-    if (rpsPartnerChoice) {
-      const partnerChoice = rpsPartnerChoice;
-
-      if (choice === partnerChoice) {
-        setRpsInlineResult("Draw round.");
-      } else {
-        const playerWins =
-          (choice === "rock" && partnerChoice === "scissors") ||
-          (choice === "paper" && partnerChoice === "rock") ||
-          (choice === "scissors" && partnerChoice === "paper");
-
-        if (playerWins) {
-          setRpsInlineScore((prev) => ({ ...prev, me: prev.me + 1 }));
-          setRpsInlineResult("You win this RPS round!");
-        } else {
-          setRpsInlineScore((prev) => ({ ...prev, partner: prev.partner + 1 }));
-          setRpsInlineResult("Partner wins this RPS round.");
-        }
-      }
-
-      setWaitingForPartnerRps(false);
-      // Reset for next round
-      window.setTimeout(() => {
-        setRpsMeChoice(null);
-        setRpsPartnerChoice(null);
-        setRpsInlineResult("Choose rock, paper, or scissors.");
-      }, 2000);
+    if (rpsPartnerChoiceRef.current) {
+      resolveRpsRound(choice, rpsPartnerChoiceRef.current);
+      return;
     }
+
+    if (rpsResolveTimeoutRef.current) {
+      window.clearTimeout(rpsResolveTimeoutRef.current);
+    }
+
+    rpsResolveTimeoutRef.current = window.setTimeout(() => {
+      if (rpsMyChoiceRef.current === choice) {
+        rpsMyChoiceRef.current = null;
+        setWaitingForPartnerRps(false);
+        setRpsPartnerChoice(null);
+        setRpsInlineResult("Partner did not respond. Pick again.");
+      }
+    }, 7000);
   };
 
   const answerInlineQuiz = (optionIndex) => {
-    if (quizAnswered || !partnerId) {
+    if (!partnerId) {
+      setQuizFeedback("Find someone first to play quiz.");
+      return;
+    }
+
+    if (quizAnswered) {
       return;
     }
 
@@ -775,301 +855,105 @@ const MatchPage = ({ directVoice = false } = {}) => {
   }, [chatMessages, isPartnerTyping]);
 
   const showControlDock = isMatched;
-  const isMiniOnlyMode = activeView === "call" && isCallMinimized;
+  const canPlayInlineGames = isMatched && Boolean(partnerId);
+  const isMiniOnlyMode = isCallMinimized;
   const isChatMaxMode = isCallMinimized && isChatSidebarOpen;
+  const isGameMaxMode = isCallMinimized && isGameSidebarOpen;
 
   return (
     <div className="center-screen">
       <div className="match-shell glass">
-        <header className={`match-header dashboard-header ${activeView === "games" ? "games-header-compact" : ""}`}>
-          {activeView === "games" ? (
-            <>
-              <div className="games-top-left">
-                <button type="button" className="ghost-btn small back-left-btn" onClick={onBack} aria-label="Back">
-                  ← Back
-                </button>
-              </div>
+        <header className="match-header dashboard-header">
+          <div>
+            <button type="button" className="ghost-btn small back-left-btn back-icon-only" onClick={onBack} aria-label="Back">
+              ←
+            </button>
+            <p className="site-name">LETZTALK</p>
+            <h2 className="match-title">
+              Meet Someone.
+              <span>Say Something.</span>
+            </h2>
+          </div>
+          <div className="header-center-tabs glass">
+            <button
+              type="button"
+              className={`dock-btn top-dock-btn ${isGameSidebarOpen ? "active" : ""}`}
+              disabled={!canPlayInlineGames}
+              onClick={() => {
+                if (!canPlayInlineGames) {
+                  setDiceResult("Find someone first to play games.");
+                  return;
+                }
 
-              <div className="header-center-tabs glass games-top-tabs">
-                <button
-                  type="button"
-                  className={`dock-btn top-dock-btn ${activeView === "call" ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveView("call");
-                    setIsCallMinimized(false);
+                setIsCallMinimized(false);
+                setIsChatMinimized(false);
+                setIsGameSidebarOpen((prev) => {
+                  const nextOpen = !prev;
+                  if (nextOpen) {
                     setIsChatSidebarOpen(false);
-                  }}
-                >
-                  <span className="dock-label">Call</span>
-                </button>
-                <button
-                  type="button"
-                  className={`dock-btn top-dock-btn ${isChatSidebarOpen ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveView("call");
-                    setIsCallMinimized(false);
-                    setIsChatSidebarOpen((prev) => !prev);
-                  }}
-                >
-                  <span className="dock-label">Chat</span>
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <button type="button" className="ghost-btn small back-left-btn back-icon-only" onClick={onBack} aria-label="Back">
-                  ←
-                </button>
-                <p className="site-name">LETZTALK</p>
-                <h2 className="match-title">
-                  Meet Someone.
-                  <span>Say Something.</span>
-                </h2>
-              </div>
-              <div className="header-center-tabs glass">
-                <button
-                  type="button"
-                  className={`dock-btn top-dock-btn ${activeView === "games" ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveView("games");
-                    setIsCallMinimized(false);
-                    setSelectedGame(null);
-                    setIsGameMinimized(false);
-                  }}
-                >
-                  <span className="dock-icon">🎮</span>
-                  <span className="dock-label">Games</span>
-                </button>
-                <button
-                  type="button"
-                  className={`dock-btn top-dock-btn ${activeView === "call" ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveView("call");
-                    setIsCallMinimized(false);
-                    setIsChatSidebarOpen(false);
-                  }}
-                >
-                  <span className="dock-icon">🎤</span>
-                  <span className="dock-label">Call</span>
-                </button>
-                <button
-                  type="button"
-                  className={`dock-btn top-dock-btn ${isChatSidebarOpen ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveView("call");
-                    setIsCallMinimized(false);
-                    setIsChatMinimized(false);
-                    setIsChatSidebarOpen((prev) => !prev);
-                  }}
-                >
-                  <span className="dock-icon">💬</span>
-                  <span className="dock-label">Text Chat</span>
-                </button>
-              </div>
-
-              <div className="header-actions">
-                {!user && !isLoggedInUser && (
-                  <button type="button" className="ghost-btn small" onClick={continueAsGuest}>
-                    Guest Login
-                  </button>
-                )}
-                {!isLoggedInUser ? (
-                  <Link className="ghost-link small-link" to="/auth">
-                    Login / Register
-                  </Link>
-                ) : (
-                  <button type="button" className="ghost-btn small" onClick={logout}>
-                    Logout
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+                  }
+                  return nextOpen;
+                });
+              }}
+            >
+              <span className="dock-icon">🎮</span>
+              <span className="dock-label">Games</span>
+            </button>
+            <button
+              type="button"
+              className={`dock-btn top-dock-btn ${isChatSidebarOpen ? "active" : ""}`}
+              onClick={() => {
+                setIsCallMinimized(false);
+                setIsChatMinimized(false);
+                setIsChatSidebarOpen((prev) => {
+                  const nextOpen = !prev;
+                  if (nextOpen) {
+                    setIsGameSidebarOpen(false);
+                  }
+                  return nextOpen;
+                });
+              }}
+            >
+              <span className="dock-icon">💬</span>
+              <span className="dock-label">Text Chat</span>
+            </button>
+          </div>
         </header>
 
         <div className="match-main-area">
+            {error && !showReportPanel && (
+              <section className="searching-inline-card glass" role="status" aria-live="polite">
+                <p>{error}</p>
+              </section>
+            )}
             {!isMatched && !shouldDirectCallFlow ? (
               <section className="connect-card glass">
                 <div className="connect-icon" aria-hidden="true">
                   <img src="/letztalk.svg" alt="" className="connect-icon-logo" />
                 </div>
                 <h3>LETZTALK</h3>
-                <p>{status === "searching" ? message || "Finding someone interesting…" : "Find a random stranger to talk with"}</p>
+                <p>Find a random stranger to talk with</p>
                 <button
                   type="button"
                   className="solid-link connect-find-btn"
-                  onClick={findMatch}
-                  disabled={status === "searching"}
+                  onClick={goToVoiceCall}
                 >
-                  {status === "searching" ? "⏳ FINDING..." : "🔍 FIND SOMEONE"}
+                  🔍 FIND SOMEONE
                 </button>
               </section>
             ) : (
               <>
                 <audio ref={remoteAudioRef} autoPlay />
 
-                <section className={`call-live-layout ${isChatSidebarOpen ? "chat-open" : ""} ${isChatMaxMode ? "chat-max" : ""}`}>
-                  <div className={`call-live-main ${isChatMaxMode ? "hidden" : ""}`}>
+                <section className={`call-live-layout ${isChatSidebarOpen || isGameSidebarOpen ? "chat-open" : ""} ${isChatMaxMode || isGameMaxMode ? "chat-max" : ""}`}>
+                  <div className={`call-live-main ${isChatMaxMode || isGameMaxMode ? "hidden" : ""}`}>
                     {showConnectedToast && !isMiniOnlyMode && (
                       <section className="searching-inline-card connected-inline-card glass" role="status" aria-live="polite">
                         <p>✅ Connected to stranger</p>
                       </section>
                     )}
 
-                    {activeView === "games" && !isGameMinimized && (
-                      <section className="games-mini-panel games-zone-embed" aria-label="Games panel">
-                        <div className="games-zone-glow" aria-hidden="true" />
-
-                        <>
-                            <div className="games-panel-top-actions">
-                              {selectedGame !== null && (
-                                <button type="button" className="ghost-btn small" onClick={() => setSelectedGame(null)}>
-                                  ← All Games
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="game-minimize-btn"
-                                onClick={() => {
-                                  setIsGameMinimized(true);
-                                  setActiveView("call");
-                                  setIsCallMinimized(false);
-                                  setIsChatSidebarOpen(false);
-                                }}
-                                title="Minimize game"
-                              >
-                                −
-                              </button>
-                            </div>
-
-                            {selectedGame === null ? (
-                              <>
-                                <div className="games-zone-hero">
-                                  <div className="games-zone-icon" aria-hidden="true">🎮</div>
-                                  <h3>PLAY &amp; CONNECT</h3>
-                                  <p>Break the ice with arcade-style games!</p>
-                                </div>
-
-                                <div className="games-selector-row games-zone-tabs">
-                                  <button
-                                    type="button"
-                                    className="game-chip game-zone-chip"
-                                    onClick={() => setSelectedGame("dice")}
-                                  >
-                                    🎲 LUDO DICE
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="game-chip game-zone-chip"
-                                    onClick={() => setSelectedGame("quiz")}
-                                  >
-                                    🧠 GEN Z SLANG
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="game-chip game-zone-chip"
-                                    onClick={() => setSelectedGame("rps")}
-                                  >
-                                    ✊ RPS
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="game-stage-active game-zone-stage glass">
-                                {selectedGame === "dice" ? (
-                                  <article className="games-3d-card game-stage-card dice-neon-stage">
-                                    <h4 className="dice-neon-title">🎲 Ludo Dice Battle</h4>
-                                    <p className="dice-neon-subtitle">Roll and compete to reach the highest score!</p>
-
-                                    <div className="dice-neon-duel">
-                                      <div className="dice-neon-player">
-                                        <span className="dice-neon-tag you">PLAYER 1</span>
-                                        <DicePips value={gameState.dice.me} isRolling={isDiceRolling} variant="you" />
-                                      </div>
-                                      <span className="dice-neon-vs">VS</span>
-                                      <div className="dice-neon-player">
-                                        <span className="dice-neon-tag bot">PLAYER 2</span>
-                                        <DicePips value={gameState.dice.stranger} isRolling={isDiceRolling} variant="bot" />
-                                      </div>
-                                    </div>
-
-                                    <div className="dice-neon-score-grid">
-                                      <div className="dice-neon-score you">
-                                        <span>🏆</span>
-                                        <p>Player 1 Score</p>
-                                        <strong>{inlineDiceScore.me}</strong>
-                                      </div>
-                                      <div className="dice-neon-score bot">
-                                        <span>🏆</span>
-                                        <p>Player 2 Score</p>
-                                        <strong>{inlineDiceScore.stranger}</strong>
-                                      </div>
-                                    </div>
-
-                                    <p className="dice-result-note">{diceResult}</p>
-                                    <button type="button" className="solid-link action-btn room-ad-btn dice-roll-btn" onClick={playInlineDice} disabled={isDiceRolling}>
-                                      {isDiceRolling ? "Rolling..." : "🎲 Roll Dice"}
-                                    </button>
-                                  </article>
-                                ) : selectedGame === "rps" ? (
-                                  <article className="games-3d-card game-stage-card rps-neon-stage">
-                                    <h4 className="rps-neon-title">✋ Rock Paper Scissors</h4>
-
-                                    <div className="dice-neon-duel">
-                                      <div className="dice-neon-player">
-                                        <span className="dice-neon-tag you">PLAYER 1</span>
-                                        <div className="rps-neon-cube">{rpsMeChoice ? (rpsMeChoice === "rock" ? "✊" : rpsMeChoice === "paper" ? "✋" : "✌️") : "?"}</div>
-                                      </div>
-                                      <span className="dice-neon-vs">VS</span>
-                                      <div className="dice-neon-player">
-                                        <span className="dice-neon-tag bot">PLAYER 2</span>
-                                        <div className="rps-neon-cube">{rpsPartnerChoice ? (rpsPartnerChoice === "rock" ? "✊" : rpsPartnerChoice === "paper" ? "✋" : "✌️") : "?"}</div>
-                                      </div>
-                                    </div>
-
-                                    <div className="dice-neon-score-grid">
-                                      <div className="dice-neon-score you">
-                                        <span>🏆</span>
-                                        <p>Player 1 Wins</p>
-                                        <strong>{rpsInlineScore.me}</strong>
-                                      </div>
-                                      <div className="dice-neon-score bot">
-                                        <span>🏆</span>
-                                        <p>Player 2 Wins</p>
-                                        <strong>{rpsInlineScore.partner}</strong>
-                                      </div>
-                                    </div>
-
-                                    <p className="dice-result-note">{rpsInlineResult}</p>
-                                    <div className="rps-neon-actions">
-                                      <button type="button" className="rps-neon-btn rock" onClick={() => playInlineRps("rock")}>✊</button>
-                                      <button type="button" className="rps-neon-btn paper" onClick={() => playInlineRps("paper")}>✋</button>
-                                      <button type="button" className="rps-neon-btn scissors" onClick={() => playInlineRps("scissors")}>✌️</button>
-                                    </div>
-                                  </article>
-                                ) : (
-                                  <article className="games-3d-card game-stage-card quiz-neon-stage">
-                                    <h4 className="rps-neon-title">🧠 Gen Z Slang</h4>
-                                    <p className="quiz-mini-question">{QUICK_QUIZ[quizIndex].question}</p>
-                                    <div className="quiz-mini-options">
-                                      {QUICK_QUIZ[quizIndex].options.map((option, optionIndex) => (
-                                        <button key={option} type="button" className="ghost-btn small" onClick={() => answerInlineQuiz(optionIndex)} disabled={quizAnswered}>
-                                          {option}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    <p className="dice-result-note">{quizFeedback}</p>
-                                    <button type="button" className="solid-link action-btn room-ad-btn" onClick={nextInlineQuiz}>Next</button>
-                                  </article>
-                                )}
-                              </div>
-                            )}
-                        </>
-                      </section>
-                    )}
-
-                    {activeView === "call" && !isCallMinimized ? (
+                    {!isCallMinimized ? (
                       <section>
                         <div className="voice-page-toolbar">
                           <button
@@ -1077,7 +961,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
                             className="ghost-btn small voice-minimize-btn"
                             onClick={() => {
                               setIsCallMinimized(true);
-                              setIsChatSidebarOpen(true);
+                              if (!isGameSidebarOpen) {
+                                setIsChatSidebarOpen(true);
+                              }
                               setIsChatMinimized(false);
                             }}
                             title="Minimize voice"
@@ -1124,9 +1010,9 @@ const MatchPage = ({ directVoice = false } = {}) => {
                         </div>
                         </div>
                       </section>
-                    ) : activeView === "call" ? null : null}
+                    ) : null}
 
-                    {activeView === "call" && showControlDock && !isMiniOnlyMode && (
+                    {showControlDock && !isMiniOnlyMode && (
                       <div className="control-dock-wrap">
                         <section className="control-dock glass">
                           <button type="button" className={`dock-btn ${isMuted ? "muted-active" : ""}`} onClick={toggleMute} title={isMuted ? "Unmute" : "Mute"} disabled={!localStreamReady}>
@@ -1219,9 +1105,161 @@ const MatchPage = ({ directVoice = false } = {}) => {
                       </div>
                     </aside>
                   )}
+
+                  {isGameSidebarOpen && (
+                    <aside className="call-chat-sidebar call-games-sidebar glass chat-inline-panel">
+                      <div className="call-chat-head-row">
+                        <button
+                          type="button"
+                          className="chat-minimize-btn"
+                          onClick={() => {
+                            if (isCallMinimized) {
+                              setIsCallMinimized(false);
+                              setIsGameSidebarOpen(false);
+                              setSelectedGame(null);
+                              return;
+                            }
+
+                            setIsGameSidebarOpen(false);
+                            setSelectedGame(null);
+                          }}
+                          title="Close games"
+                        >
+                          ←
+                        </button>
+                        <div>
+                          <h3 className="call-chat-title">Games</h3>
+                          <p className="call-chat-subtitle">Play while you talk.</p>
+                        </div>
+                      </div>
+
+                      <section className="games-mini-panel games-zone-embed">
+                        <div className="games-zone-glow" aria-hidden="true" />
+
+                        {selectedGame === null ? (
+                          <>
+                            <div className="games-zone-hero">
+                              <div className="games-zone-icon" aria-hidden="true">🎮</div>
+                              <h3>PLAY & CONNECT</h3>
+                              <p>Break the ice with arcade-style games!</p>
+                            </div>
+
+                            <div className="games-selector-row games-zone-tabs">
+                              <button type="button" className="game-chip game-zone-chip" onClick={() => setSelectedGame("dice")}>
+                                🎲 LUDO DICE
+                              </button>
+                              <button type="button" className="game-chip game-zone-chip" onClick={() => setSelectedGame("quiz")}>
+                                🧠 GEN Z SLANG
+                              </button>
+                              <button type="button" className="game-chip game-zone-chip" onClick={() => setSelectedGame("rps")}>
+                                ✊ RPS
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="games-panel-top-actions">
+                              <button type="button" className="ghost-btn small" onClick={() => setSelectedGame(null)}>
+                                ← All Games
+                              </button>
+                            </div>
+
+                            <div className="game-stage-active game-zone-stage glass">
+                              {selectedGame === "dice" ? (
+                                <article className="games-3d-card game-stage-card dice-neon-stage">
+                                  <h4 className="dice-neon-title">🎲 Ludo Dice Battle</h4>
+                                  <p className="dice-neon-subtitle">Roll and compete to reach the highest score!</p>
+
+                                  <div className="dice-neon-duel">
+                                    <div className="dice-neon-player">
+                                      <span className="dice-neon-tag you">PLAYER 1</span>
+                                      <DicePips value={gameState.dice.me} isRolling={isDiceRolling} variant="you" />
+                                    </div>
+                                    <span className="dice-neon-vs">VS</span>
+                                    <div className="dice-neon-player">
+                                      <span className="dice-neon-tag bot">PLAYER 2</span>
+                                      <DicePips value={gameState.dice.stranger} isRolling={isDiceRolling} variant="bot" />
+                                    </div>
+                                  </div>
+
+                                  <div className="dice-neon-score-grid">
+                                    <div className="dice-neon-score you">
+                                      <span>🏆</span>
+                                      <p>Player 1 Score</p>
+                                      <strong>{inlineDiceScore.me}</strong>
+                                    </div>
+                                    <div className="dice-neon-score bot">
+                                      <span>🏆</span>
+                                      <p>Player 2 Score</p>
+                                      <strong>{inlineDiceScore.stranger}</strong>
+                                    </div>
+                                  </div>
+
+                                  <p className="dice-result-note">{diceResult}</p>
+                                  <button type="button" className="solid-link action-btn room-ad-btn dice-roll-btn" onClick={playInlineDice} disabled={isDiceRolling}>
+                                    {isDiceRolling ? "Rolling..." : "🎲 Roll Dice"}
+                                  </button>
+                                </article>
+                              ) : selectedGame === "rps" ? (
+                                <article className="games-3d-card game-stage-card rps-neon-stage">
+                                  <h4 className="rps-neon-title">✋ Rock Paper Scissors</h4>
+
+                                  <div className="dice-neon-duel">
+                                    <div className="dice-neon-player">
+                                      <span className="dice-neon-tag you">PLAYER 1</span>
+                                      <div className="rps-neon-cube">{rpsMeChoice ? (rpsMeChoice === "rock" ? "✊" : rpsMeChoice === "paper" ? "✋" : "✌️") : "?"}</div>
+                                    </div>
+                                    <span className="dice-neon-vs">VS</span>
+                                    <div className="dice-neon-player">
+                                      <span className="dice-neon-tag bot">PLAYER 2</span>
+                                      <div className="rps-neon-cube">{rpsPartnerChoice ? (rpsPartnerChoice === "rock" ? "✊" : rpsPartnerChoice === "paper" ? "✋" : "✌️") : "?"}</div>
+                                    </div>
+                                  </div>
+
+                                  <div className="dice-neon-score-grid">
+                                    <div className="dice-neon-score you">
+                                      <span>🏆</span>
+                                      <p>Player 1 Wins</p>
+                                      <strong>{rpsInlineScore.me}</strong>
+                                    </div>
+                                    <div className="dice-neon-score bot">
+                                      <span>🏆</span>
+                                      <p>Player 2 Wins</p>
+                                      <strong>{rpsInlineScore.partner}</strong>
+                                    </div>
+                                  </div>
+
+                                  <p className="dice-result-note">{rpsInlineResult}</p>
+                                  <div className="rps-neon-actions">
+                                    <button type="button" className="rps-neon-btn rock" onClick={() => playInlineRps("rock")}>✊</button>
+                                    <button type="button" className="rps-neon-btn paper" onClick={() => playInlineRps("paper")}>✋</button>
+                                    <button type="button" className="rps-neon-btn scissors" onClick={() => playInlineRps("scissors")}>✌️</button>
+                                  </div>
+                                </article>
+                              ) : (
+                                <article className="games-3d-card game-stage-card quiz-neon-stage">
+                                  <h4 className="rps-neon-title">🧠 Gen Z Slang</h4>
+                                  <p className="quiz-mini-question">{QUICK_QUIZ[quizIndex].question}</p>
+                                  <div className="quiz-mini-options">
+                                    {QUICK_QUIZ[quizIndex].options.map((option, optionIndex) => (
+                                      <button key={option} type="button" className="ghost-btn small" onClick={() => answerInlineQuiz(optionIndex)} disabled={quizAnswered}>
+                                        {option}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <p className="dice-result-note">{quizFeedback}</p>
+                                  <button type="button" className="solid-link action-btn room-ad-btn" onClick={nextInlineQuiz}>Next</button>
+                                </article>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </section>
+                    </aside>
+                  )}
                 </section>
 
-                {activeView === "call" && showControlDock && !isMiniOnlyMode && (
+                {showControlDock && !isMiniOnlyMode && (
                   <section className="room-feature-card glass" aria-label="Rooms features">
                     <div>
                       <h4>👥 Rooms</h4>

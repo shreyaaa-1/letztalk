@@ -52,19 +52,19 @@ const HomePage = () => {
 
     setLoadingGuest(true);
 
-    try {
-      await continueAsGuest();
-    } catch {
-      // user can still continue as anonymous in the call flow
-    }
-
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 850);
+    navigate("/call?feature=voice", {
+      state: {
+        fromHome: true,
+      },
     });
 
-    navigate("/guest-features");
-
-    setLoadingGuest(false);
+    continueAsGuest()
+      .catch(() => {
+        // user can still continue as anonymous in the call flow
+      })
+      .finally(() => {
+        setLoadingGuest(false);
+      });
   };
 
   return (
@@ -86,9 +86,8 @@ const HomePage = () => {
               type="button"
               className="solid-link landing-primary"
               onClick={onStartGuest}
-              disabled={loadingGuest}
             >
-              {loadingGuest ? "⏳ FINDING..." : "📞 START AS GUEST"}
+              📞 START AS GUEST
             </button>
 
             <Link className="ghost-link landing-secondary" to="/auth">
@@ -96,12 +95,6 @@ const HomePage = () => {
             </Link>
           </div>
 
-          {loadingGuest && (
-            <p className="landing-finding" role="status" aria-live="polite">
-              <span className="landing-finding-dot" aria-hidden="true" />
-              Finding someone for you...
-            </p>
-          )}
         </section>
 
         <section className={`home-v2-cards-section ${isGuest ? 'static-grid' : ''}`} aria-label="Feature cards">

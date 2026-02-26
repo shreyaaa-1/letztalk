@@ -111,16 +111,19 @@ const GamesPage = () => {
     setIsRolling(true);
 
     setTimeout(() => {
-      const randomValues = crypto.getRandomValues(new Uint32Array(2));
-      const player = (randomValues[0] % 6) + 1;
-      const bot = (randomValues[1] % 6) + 1;
-      setLastRoll({ player, bot });
-      setPlayerScore((prev) => prev + player);
-      setBotScore((prev) => prev + bot);
-      setIsRolling(false);
+      try {
+        const hasCrypto = typeof window !== "undefined" && window.crypto?.getRandomValues;
+        const player = hasCrypto ? (window.crypto.getRandomValues(new Uint32Array(1))[0] % 6) + 1 : Math.floor(Math.random() * 6) + 1;
+        const bot = hasCrypto ? (window.crypto.getRandomValues(new Uint32Array(1))[0] % 6) + 1 : Math.floor(Math.random() * 6) + 1;
+        setLastRoll({ player, bot });
+        setPlayerScore((prev) => prev + player);
+        setBotScore((prev) => prev + bot);
 
-      const resultText = player === bot ? "Round draw" : player > bot ? "You won this roll" : "LetzTalk won this roll";
-      showToast(`🎲 ${resultText}`);
+        const resultText = player === bot ? "Round draw" : player > bot ? "You won this roll" : "LetzTalk won this roll";
+        showToast(`🎲 ${resultText}`);
+      } finally {
+        setIsRolling(false);
+      }
     }, 520);
   };
 
@@ -169,8 +172,21 @@ const GamesPage = () => {
     showToast("🤖 Playing with LetzTalk");
   };
 
-  const handleFindRandom = () => {
-    navigate("/call?feature=voice");
+  const handlePlayWithPartner = () => {
+    navigate("/call?feature=voice", {
+      state: {
+        fromHome: true,
+      },
+    });
+  };
+
+  const onBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/");
   };
   const getQuizAssessment = () => {
     const ratio = quizScore / slangQuestions.length;
@@ -231,8 +247,8 @@ const GamesPage = () => {
               <button type="button" className="solid-link action-btn" onClick={handlePlayWithBot}>
                 🤖 Play with LetzTalk
               </button>
-              <button type="button" className="ghost-link action-btn" onClick={handleFindRandom}>
-                🎲 Find Random Partner
+              <button type="button" className="ghost-link action-btn" onClick={handlePlayWithPartner}>
+                🎮 Play with Connected Partner
               </button>
             </div>
           </div>
@@ -245,12 +261,14 @@ const GamesPage = () => {
 
         <header className="feature-header">
           <div>
+            <button type="button" className="ghost-btn small back-left-btn back-icon-only" onClick={onBack} aria-label="Back">
+              ←
+            </button>
             <p>Play mini games: Ludo Dice, Gen Z Slang Quiz, and Rock Paper Scissors.</p>
           </div>
           <div className="header-actions">
-            <Link className="ghost-link small-link" to="/call">Call</Link>
-            <Link className="ghost-link small-link" to="/message">Message</Link>
-            <Link className="ghost-link small-link" to="/rooms">Rooms</Link>
+            <Link className="ghost-link small-link" to="/games">Games</Link>
+            <Link className="ghost-link small-link" to="/message">Text Chat</Link>
           </div>
         </header>
 
@@ -301,7 +319,6 @@ const GamesPage = () => {
                   {activeGame === "dice" && (
                     <article className="games-3d-card game-stage-card dice-neon-stage">
                       <h4 className="dice-neon-title">🎲 Ludo Dice Battle</h4>
-                      <p className="dice-neon-subtitle">Roll and compete to reach the highest score!</p>
 
                       <div className="dice-neon-duel">
                         <div className="dice-neon-player">
@@ -335,8 +352,8 @@ const GamesPage = () => {
                             ? "You win this roll! 🎉" 
                             : "LetzTalk wins this roll."}
                       </p>
-                      <button type="button" className="solid-link action-btn room-ad-btn dice-roll-btn" onClick={rollDice} disabled={isRolling}>
-                        {isRolling ? "Rolling..." : "🎲 Roll Dice"}
+                      <button type="button" className="solid-link action-btn room-ad-btn dice-roll-btn" onClick={rollDice} aria-busy={isRolling}>
+                        {isRolling ? "Waiting for partner..." : "🎲 Roll Dice"}
                       </button>
                     </article>
                   )}

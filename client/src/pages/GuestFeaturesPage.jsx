@@ -33,7 +33,6 @@ const GuestFeaturesPage = () => {
     navigate("/call?feature=voice", {
       state: {
         fromHome: true,
-        notice: "Finding someone interesting…",
       },
     });
   };
@@ -43,6 +42,10 @@ const GuestFeaturesPage = () => {
       <div className="landing-container">
         <section className="landing-shell home-v2-hero" aria-label="Guest features">
           <div className="landing-glow home-v2-glow" aria-hidden="true" />
+
+          <Link className="ghost-link home-v2-back-link" to="/">
+            ← Back to Home
+          </Link>
 
           <p className="home-v2-brand">LETZTALK</p>
           <h1 className="home-v2-title">
@@ -60,10 +63,6 @@ const GuestFeaturesPage = () => {
             >
               🔍 FIND SOMEONE
             </button>
-
-            <Link className="ghost-link landing-secondary" to="/">
-              ← Back to Home
-            </Link>
           </div>
         </section>
 

@@ -58,11 +58,6 @@ const BlockPage = () => {
           <button type="button" className="solid-link action-btn" onClick={onBlock} disabled={loading}>
             {loading ? "Blocking..." : "Block User"}
           </button>
-          {!isLoggedInUser && (
-            <Link to="/auth" className="ghost-link">
-              Login / Register
-            </Link>
-          )}
           <Link to="/call" className="ghost-link">
             Back to Call
           </Link>

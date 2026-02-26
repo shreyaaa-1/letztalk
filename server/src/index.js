@@ -94,6 +94,11 @@ const leaveSocialRoom = (socketId) => {
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
 
+  const getConnectedPartnerId = () => findPartner(socket.id);
+  const canTargetConnectedPartner = (targetSocketId) => (
+    Boolean(targetSocketId) && getConnectedPartnerId() === targetSocketId
+  );
+
   // ===============================
   // Find random match
   // ===============================
@@ -144,6 +149,10 @@ io.on("connection", (socket) => {
     // WebRTC Offer
     // ===============================
     socket.on("webrtc_offer", ({ to, offer }) => {
+      if (!canTargetConnectedPartner(to) || !offer) {
+        return;
+      }
+
       io.to(to).emit("webrtc_offer", {
         from: socket.id,
         offer,
@@ -154,6 +163,10 @@ io.on("connection", (socket) => {
     // WebRTC Answer
     // ===============================
     socket.on("webrtc_answer", ({ to, answer }) => {
+      if (!canTargetConnectedPartner(to) || !answer) {
+        return;
+      }
+
       io.to(to).emit("webrtc_answer", {
         from: socket.id,
         answer,
@@ -164,6 +177,10 @@ io.on("connection", (socket) => {
     // ICE Candidate
     // ===============================
     socket.on("webrtc_ice_candidate", ({ to, candidate }) => {
+      if (!canTargetConnectedPartner(to) || !candidate) {
+        return;
+      }
+
       io.to(to).emit("webrtc_ice_candidate", {
         from: socket.id,
         candidate,
@@ -174,8 +191,13 @@ io.on("connection", (socket) => {
     // Call End
     // ===============================
     socket.on("call_end", ({ to }) => {
-      io.to(to).emit("call_end");
-      io.to(to).emit("room_state", { state: "ended", reason: "partner_ended" });
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+      if (!partnerId) {
+        return;
+      }
+
+      io.to(partnerId).emit("call_end");
+      io.to(partnerId).emit("room_state", { state: "ended", reason: "partner_ended" });
       socket.emit("room_state", { state: "ended", reason: "self_ended" });
     });
 
@@ -184,11 +206,13 @@ io.on("connection", (socket) => {
     // ===============================
     socket.on("chat_message", ({ to, text }) => {
       const safeText = String(text || "").trim();
-      if (!to || !safeText) {
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+
+      if (!partnerId || !safeText) {
         return;
       }
 
-      io.to(to).emit("chat_message", {
+      io.to(partnerId).emit("chat_message", {
         from: socket.id,
         text: safeText,
         sentAt: Date.now(),
@@ -196,52 +220,62 @@ io.on("connection", (socket) => {
     });
 
     socket.on("chat_typing", ({ to }) => {
-      if (!to) {
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+
+      if (!partnerId) {
         return;
       }
 
-      io.to(to).emit("chat_typing", { from: socket.id });
+      io.to(partnerId).emit("chat_typing", { from: socket.id });
     });
 
     socket.on("chat_stop_typing", ({ to }) => {
-      if (!to) {
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+
+      if (!partnerId) {
         return;
       }
 
-      io.to(to).emit("chat_stop_typing", { from: socket.id });
+      io.to(partnerId).emit("chat_stop_typing", { from: socket.id });
     });
 
     // ===============================
     // Game events relay
     // ===============================
     socket.on("game_dice_roll", ({ to, roll }) => {
-      if (!to || typeof roll !== "number") {
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+
+      if (!partnerId || typeof roll !== "number") {
         return;
       }
 
-      io.to(to).emit("game_dice_roll", {
+      io.to(partnerId).emit("game_dice_roll", {
         from: socket.id,
         roll,
       });
     });
 
     socket.on("game_rps_move", ({ to, choice }) => {
-      if (!to || !choice) {
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+
+      if (!partnerId || !choice) {
         return;
       }
 
-      io.to(to).emit("game_rps_move", {
+      io.to(partnerId).emit("game_rps_move", {
         from: socket.id,
         choice,
       });
     });
 
     socket.on("game_quiz_answer", ({ to, optionIndex, isCorrect }) => {
-      if (!to || typeof optionIndex !== "number") {
+      const partnerId = canTargetConnectedPartner(to) ? to : getConnectedPartnerId();
+
+      if (!partnerId || typeof optionIndex !== "number") {
         return;
       }
 
-      io.to(to).emit("game_quiz_answer", {
+      io.to(partnerId).emit("game_quiz_answer", {
         from: socket.id,
         optionIndex,
         isCorrect,

@@ -69,6 +69,18 @@ h3 {
   padding: 16px 20px 24px;
 }
 
+.center-screen.games-page-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.center-screen.games-page-screen .games-zone-embed {
+  width: min(1180px, calc(100vw - 40px));
+  margin-inline: auto;
+}
+
 .landing-grid-bg {
   position: relative;
   overflow: hidden;
@@ -279,12 +291,26 @@ h3 {
 
 .home-v2-hero {
   min-height: min(72vh, 760px);
+  position: relative;
   display: grid;
   align-content: center;
   justify-items: center;
   text-align: center;
   gap: 12px;
   padding: 52px 30px 36px;
+}
+
+.home-v2-back-link {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  min-height: 52px;
+  min-width: 220px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
 }
 
 .home-v2-glow {
@@ -324,6 +350,8 @@ h3 {
 
 .home-v2-actions {
   margin-top: 24px;
+  width: 100%;
+  justify-content: center;
 }
 
 .home-v2-actions .landing-primary,
@@ -337,6 +365,10 @@ h3 {
 .home-v2-actions .landing-secondary {
   background: rgba(7, 10, 17, 0.72);
   border: 1px solid rgba(175, 185, 207, 0.26);
+}
+
+.home-v2-actions .landing-primary {
+  min-width: min(420px, 100%);
 }
 
 .home-v2-cards-section {
@@ -2344,7 +2376,7 @@ h3 {
 
 .message-header {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: start;
   gap: 12px;
 }
@@ -2361,12 +2393,109 @@ h3 {
   min-width: 0;
 }
 
-.message-header-actions {
-  justify-self: end;
-}
-
 .message-bot-actions {
   justify-content: center;
+}
+
+.message-page-screen {
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.message-page-screen .feature-shell {
+  width: min(980px, 100%);
+  min-height: min(820px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.message-page-screen .message-main-row {
+  justify-content: center;
+  flex: 1;
+  margin-top: 0;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.message-page-screen .message-main-area {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.message-page-screen .messages-box {
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+}
+
+.message-page-screen .messages-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+.message-page-screen .feature-header p {
+  color: #4a5c85 !important;
+}
+
+.message-page-screen .light-chat-theme .messages-box {
+  background: linear-gradient(145deg, #ffffff, #f3f7ff);
+  border: 1px solid rgba(126, 146, 210, 0.28);
+}
+
+.message-page-screen .light-chat-theme .messages-list {
+  background: #ffffff;
+  border: 1px solid rgba(126, 146, 210, 0.2);
+}
+
+.message-page-screen .light-chat-theme .msg-bubble.self {
+  background: linear-gradient(135deg, #c7d8ff, #b8cfff);
+  border-color: rgba(73, 96, 163, 0.28);
+  color: #1f3266;
+}
+
+.message-page-screen .light-chat-theme .msg-bubble.peer {
+  background: linear-gradient(135deg, #ffe3ef, #ffd8e9);
+  border-color: rgba(185, 86, 131, 0.25);
+  color: #6d2d4f;
+}
+
+.message-page-screen .light-chat-theme .messages-input-row input {
+  background: #ffffff;
+  color: #213463;
+  border: 1px solid rgba(116, 136, 198, 0.34);
+}
+
+.message-page-screen .light-chat-theme .messages-input-row input::placeholder {
+  color: #7b8db8;
+}
+
+@media (max-width: 700px) {
+  .message-page-screen {
+    padding: 12px;
+  }
+
+  .message-page-screen .feature-shell {
+    min-height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+  }
+
+  .message-page-screen .messages-input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .message-page-screen .messages-input-row .action-btn {
+    width: 100%;
+  }
 }
 
 .toast-notification.info {
@@ -3967,6 +4096,16 @@ h3 {
 .chat-inline-panel {
   width: 100%;
   margin: 0;
+}
+
+.call-games-sidebar {
+  grid-template-rows: auto 1fr;
+}
+
+.call-games-sidebar .games-mini-panel {
+  margin-bottom: 0;
+  height: 100%;
+  align-content: start;
 }
 
 .call-chat-head-row {
