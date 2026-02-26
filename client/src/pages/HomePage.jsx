@@ -52,11 +52,7 @@ const HomePage = () => {
 
     setLoadingGuest(true);
 
-    navigate("/call?feature=voice", {
-      state: {
-        fromHome: true,
-      },
-    });
+    navigate("/guest-features");
 
     continueAsGuest()
       .catch(() => {

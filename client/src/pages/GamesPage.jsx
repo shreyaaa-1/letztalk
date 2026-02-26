@@ -53,7 +53,6 @@ const DicePips = ({ value, isRolling, variant }) => {
 const GamesPage = () => {
   const navigate = useNavigate();
   const [activeGame, setActiveGame] = useState(null);
-  const [playMode, setPlayMode] = useState(null); // null (show modal), 'bot', or 'multiplayer'
 
   const [playerScore, setPlayerScore] = useState(0);
   const [botScore, setBotScore] = useState(0);
@@ -167,19 +166,6 @@ const GamesPage = () => {
     setLastAnswerCorrect(null);
     showToast("🔁 Quiz restarted");
   };
-  const handlePlayWithBot = () => {
-    setPlayMode("bot");
-    showToast("🤖 Playing with LetzTalk");
-  };
-
-  const handlePlayWithPartner = () => {
-    navigate("/call?feature=voice", {
-      state: {
-        fromHome: true,
-      },
-    });
-  };
-
   const onBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
@@ -238,23 +224,6 @@ const GamesPage = () => {
 
   return (
     <div className="center-screen">
-      {playMode === null && (
-        <div className="access-modal-overlay">
-          <div className="access-modal glass">
-            <h2>🎮 Choose Game Mode</h2>
-            <p>How would you like to play?</p>
-            <div className="access-modal-actions">
-              <button type="button" className="solid-link action-btn" onClick={handlePlayWithBot}>
-                🤖 Play with LetzTalk
-              </button>
-              <button type="button" className="ghost-link action-btn" onClick={handlePlayWithPartner}>
-                🎮 Play with Connected Partner
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="feature-shell refresh-shell glass games-zone-embed">
         {toast && <div className={`game-toast ${toast.type}`}>{toast.text}</div>}
         <div className="games-zone-glow" aria-hidden="true" />

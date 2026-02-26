@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
 
 const guestFeatures = [
   {
@@ -27,7 +26,6 @@ const guestFeatures = [
 
 const GuestFeaturesPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const startVoiceCall = () => {
     navigate("/call?feature=voice", {
@@ -43,8 +41,8 @@ const GuestFeaturesPage = () => {
         <section className="landing-shell home-v2-hero" aria-label="Guest features">
           <div className="landing-glow home-v2-glow" aria-hidden="true" />
 
-          <Link className="ghost-link home-v2-back-link" to="/">
-            ← Back to Home
+          <Link className="ghost-btn small back-left-btn back-icon-only guest-top-back" to="/" aria-label="Back to Home">
+            ←
           </Link>
 
           <p className="home-v2-brand">LETZTALK</p>
@@ -58,7 +56,7 @@ const GuestFeaturesPage = () => {
           <div className="landing-actions home-v2-actions">
             <button
               type="button"
-              className="solid-link landing-primary"
+              className="solid-link landing-primary guest-find-btn"
               onClick={startVoiceCall}
             >
               🔍 FIND SOMEONE

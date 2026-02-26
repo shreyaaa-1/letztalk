@@ -371,6 +371,25 @@ h3 {
   min-width: min(420px, 100%);
 }
 
+.guest-top-back {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 5;
+  margin: 0;
+}
+
+.home-v2-actions .landing-primary.guest-find-btn {
+  min-height: 48px;
+  min-width: 0;
+  max-width: 280px;
+  width: fit-content;
+  padding: 0 22px;
+  margin-inline: auto;
+  font-size: clamp(0.95rem, 1.45vw, 1.12rem);
+  flex: 0 0 auto;
+}
+
 .home-v2-cards-section {
   width: 100%;
   overflow: hidden;
@@ -2394,6 +2413,92 @@ h3 {
 }
 
 .message-bot-actions {
+  justify-content: center;
+}
+
+.message-purple-shell {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(168, 85, 247, 0.18), transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(236, 72, 153, 0.14), transparent 42%),
+    linear-gradient(160deg, rgba(15, 20, 44, 0.96), rgba(23, 18, 52, 0.94));
+  border: 1px solid rgba(154, 143, 255, 0.34);
+}
+
+.message-page-screen .message-header {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: start;
+}
+
+.message-page-screen .message-header-copy {
+  text-align: center;
+  padding-right: 44px;
+}
+
+.message-page-screen .message-header-copy h1 {
+  background: linear-gradient(90deg, #f0c4ff 0%, #bf8cff 50%, #7fb0ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.message-page-screen .feature-header p {
+  color: #cbd5f3 !important;
+}
+
+.message-feature-strip {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.message-feature-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(171, 147, 255, 0.32);
+  background: rgba(107, 88, 191, 0.2);
+  color: #e4ddff;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 6px 12px;
+}
+
+.message-page-screen .message-purple-shell .messages-box {
+  background: linear-gradient(165deg, rgba(38, 30, 80, 0.58), rgba(28, 24, 66, 0.52));
+  border: 1px solid rgba(169, 140, 255, 0.28);
+}
+
+.message-page-screen .message-purple-shell .messages-list {
+  background: rgba(14, 15, 36, 0.74);
+  border: 1px solid rgba(159, 140, 255, 0.22);
+}
+
+.message-page-screen .message-purple-shell .msg-bubble.self {
+  background: linear-gradient(135deg, rgba(114, 210, 255, 0.22), rgba(98, 145, 255, 0.18));
+  border-color: rgba(130, 176, 255, 0.34);
+  color: #d2e7ff;
+}
+
+.message-page-screen .message-purple-shell .msg-bubble.peer {
+  background: linear-gradient(135deg, rgba(214, 137, 255, 0.24), rgba(168, 117, 255, 0.18));
+  border-color: rgba(198, 142, 255, 0.34);
+  color: #f1dcff;
+}
+
+.message-page-screen .message-purple-shell .messages-input-row input {
+  background: rgba(8, 10, 28, 0.9);
+  border: 1px solid rgba(167, 139, 250, 0.42);
+  color: #e8e3ff;
+}
+
+.message-page-screen .message-purple-shell .messages-input-row input::placeholder {
+  color: #9fa8d6;
+}
+
+.message-page-screen .message-action-row {
   justify-content: center;
 }
 
