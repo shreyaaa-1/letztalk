@@ -38,7 +38,7 @@ const reportUser = async (req, res) => {
     console.error("Report error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to submit report",
     });
   }
 };

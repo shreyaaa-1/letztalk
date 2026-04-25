@@ -36,7 +36,7 @@ const blockUser = async (req, res) => {
     console.error("Block error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to block user",
     });
   }
 };

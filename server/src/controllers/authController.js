@@ -21,7 +21,7 @@ const createGuestUser = async (req, res) => {
     console.error("Guest creation error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to create guest user",
     });
   }
 };
@@ -68,16 +68,19 @@ const registerUser = async (req, res) => {
       expiresIn: "7d",
     });
 
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
     return res.status(201).json({
       success: true,
       token,
-      user,
+      user: safeUser,
     });
   } catch (error) {
     console.error("Register error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Registration failed",
     });
   }
 };
@@ -125,16 +128,19 @@ const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
     return res.json({
       success: true,
       token,
-      user,
+      user: safeUser,
     });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Login failed",
     });
   }
 };

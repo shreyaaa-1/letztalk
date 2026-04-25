@@ -11,7 +11,7 @@ const getMe = async (req, res) => {
     console.error("GetMe error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch user",
     });
   }
 };

@@ -1,5 +1,26 @@
 require("dotenv").config();
 
+const REQUIRED_ENV = ["MONGO_URI", "JWT_SECRET"];
+const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
+if (missingEnv.length) {
+  console.error(
+    `❌ Missing required environment variables: ${missingEnv.join(", ")}. ` +
+      `See server/.env.example.`
+  );
+  process.exit(1);
+}
+
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.JWT_SECRET.length < 32
+) {
+  console.error(
+    "❌ JWT_SECRET must be at least 32 characters in production. " +
+      "Generate one with: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
+  );
+  process.exit(1);
+}
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -28,8 +49,24 @@ const server = http.createServer(app);
 // ✅ connect DB
 connectDB();
 
+// ✅ CORS — restrict to configured client origin(s)
+const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow same-origin / non-browser tools (no Origin header)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
 // ✅ middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(apiLimiter);
 
@@ -42,7 +79,10 @@ app.use("/api/mod", blockRoutes);
 
 // ✅ socket setup (MUST be before io.on)
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
 });
 
 const socialRooms = new Map();
